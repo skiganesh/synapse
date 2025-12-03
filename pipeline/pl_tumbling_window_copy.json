@@ -1,0 +1,90 @@
+{
+	"name": "pl_tumbling_window_copy",
+	"properties": {
+		"activities": [
+			{
+				"name": "Tumbling_Copy",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "DelimitedTextSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"wildcardFolderPath": "tumbling-demo/input",
+							"wildcardFileName": {
+								"value": "@concat('events_', formatDateTime(pipeline().parameters.windowStart, 'yyyy-MM-dd_HH'), '.csv')",
+								"type": "Expression"
+							},
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "DelimitedTextReadSettings"
+						}
+					},
+					"sink": {
+						"type": "DelimitedTextSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings",
+							"copyBehavior": "MergeFiles"
+						},
+						"formatSettings": {
+							"type": "DelimitedTextWriteSettings",
+							"quoteAllText": true,
+							"fileExtension": ".txt"
+						}
+					},
+					"enableStaging": false,
+					"translator": {
+						"type": "TabularTranslator",
+						"typeConversion": true,
+						"typeConversionSettings": {
+							"allowDataTruncation": true,
+							"treatBooleanAsNumber": false
+						}
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "tumbling_input",
+						"type": "DatasetReference",
+						"parameters": {
+							"p_folderPath": "tumbling-demo/input",
+							"p_fileName": "@concat('events_', formatDateTime(pipeline().parameters.windowStart,'yyyy-MM-dd_HH'), '.csv')"
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "tumpling_processed",
+						"type": "DatasetReference",
+						"parameters": {
+							"p_folderPath": "tumbling-demo/processed",
+							"p_fileName": "@concat('processed_', formatDateTime(pipeline().parameters.windowEnd,'yyyyMMddHHmm'), '.csv')"
+						}
+					}
+				]
+			}
+		],
+		"parameters": {
+			"windowStart": {
+				"type": "string"
+			},
+			"windowEnd": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2025-11-07T07:40:21Z"
+	},
+	"type": "Microsoft.Synapse/workspaces/pipelines"
+}

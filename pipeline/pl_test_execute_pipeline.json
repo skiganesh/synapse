@@ -1,0 +1,55 @@
+{
+	"name": "pl_test_execute_pipeline",
+	"properties": {
+		"activities": [
+			{
+				"name": "Run_ChildPipeline",
+				"type": "ExecutePipeline",
+				"dependsOn": [],
+				"policy": {
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "PL_Lookup_Demo",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "Set variable1",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Run_ChildPipeline",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "ReceivedMessage",
+					"value": {
+						"value": "@activity('Run_ChildPipeline').output.pipelineReturnValue.MessageFromChild\n",
+						"type": "Expression"
+					}
+				}
+			}
+		],
+		"variables": {
+			"ReceivedMessage": {
+				"type": "String"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2025-10-20T12:00:32Z"
+	},
+	"type": "Microsoft.Synapse/workspaces/pipelines"
+}

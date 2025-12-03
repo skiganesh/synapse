@@ -1,0 +1,19 @@
+{
+	"name": "ds_input_file_0411",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_Storage_MyAccount",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "Binary",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"folderPath": "batch_event_pipeline/test_ip",
+				"fileSystem": "my-container"
+			}
+		}
+	},
+	"type": "Microsoft.Synapse/workspaces/datasets"
+}

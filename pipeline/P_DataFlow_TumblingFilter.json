@@ -1,0 +1,89 @@
+{
+	"name": "P_DataFlow_TumblingFilter",
+	"properties": {
+		"activities": [
+			{
+				"name": "TumblingDataFlow",
+				"type": "ExecuteDataFlow",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataflow": {
+						"referenceName": "TumblingDataFlow",
+						"type": "DataFlowReference",
+						"parameters": {
+							"df_windowStart": {
+								"value": "'@{pipeline().parameters.windowStart}'",
+								"type": "Expression"
+							},
+							"df_windowEnd": {
+								"value": "'@{pipeline().parameters.windowEnd}'",
+								"type": "Expression"
+							}
+						},
+						"datasetParameters": {
+							"TumblingSource": {
+								"p_folderPath": "tumbling-demo/input",
+								"p_fileName": {
+									"value": "@concat('events_', formatDateTime(pipeline().parameters.windowStart,'yyyy-MM-dd_HH'), '.csv')",
+									"type": "Expression"
+								}
+							},
+							"Tumblingsink": {
+								"p_folderPath": "tumbling-demo/processed",
+								"p_fileName": "@concat('processed_', formatDateTime(pipeline().parameters.windowEnd,'yyyyMMddHHmm'), '.csv')"
+							}
+						}
+					},
+					"compute": {
+						"coreCount": 8,
+						"computeType": "General"
+					},
+					"traceLevel": "Fine"
+				}
+			},
+			{
+				"name": "CheckParameter",
+				"type": "SetVariable",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "StartTime",
+					"value": {
+						"value": "@pipeline().parameters.windowStart",
+						"type": "Expression"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"windowStart": {
+				"type": "string"
+			},
+			"windowEnd": {
+				"type": "string"
+			}
+		},
+		"variables": {
+			"StartTime": {
+				"type": "String"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2025-11-10T17:20:37Z"
+	},
+	"type": "Microsoft.Synapse/workspaces/pipelines"
+}

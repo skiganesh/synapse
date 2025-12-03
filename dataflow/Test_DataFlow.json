@@ -1,0 +1,54 @@
+{
+	"name": "Test_DataFlow",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "tumbling_input",
+						"type": "DatasetReference"
+					},
+					"name": "InputSource"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "tumpling_processed",
+						"type": "DatasetReference"
+					},
+					"name": "Ouputsink"
+				}
+			],
+			"transformations": [
+				{
+					"name": "Timefilter",
+					"description": "event_ts >= toTimestamp('2025-11-06 10:00:00', 'yyyy-MM-dd HH:mm:ss')"
+				},
+				{
+					"name": "derivedColumn1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          event_time as string,",
+				"          event_id as string,",
+				"          value as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> InputSource",
+				"derivedColumn1 filter(event_ts >= toTimestamp('2025-11-06 10:00:00', 'yyyy-MM-dd HH:mm:ss')) ~> Timefilter",
+				"InputSource derive(event_ts = toTimestamp(event_time, 'yyyy-MM-dd\\'T\\'HH:mm:ss\\'Z\\'')) ~> derivedColumn1",
+				"Timefilter sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> Ouputsink"
+			]
+		}
+	}
+}

@@ -1,0 +1,235 @@
+{
+	"name": "Dataflow1",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "customers",
+						"type": "DatasetReference"
+					},
+					"name": "CustomersSrc"
+				},
+				{
+					"dataset": {
+						"referenceName": "orders",
+						"type": "DatasetReference"
+					},
+					"name": "OrdersSrc"
+				},
+				{
+					"dataset": {
+						"referenceName": "products",
+						"type": "DatasetReference"
+					},
+					"name": "ProductsSrc"
+				},
+				{
+					"dataset": {
+						"referenceName": "loyalty",
+						"type": "DatasetReference"
+					},
+					"name": "LoyaltyLookupSrc"
+				},
+				{
+					"dataset": {
+						"referenceName": "new_customers",
+						"type": "DatasetReference"
+					},
+					"name": "NewCustomersSrc"
+				},
+				{
+					"dataset": {
+						"referenceName": "addresses",
+						"type": "DatasetReference"
+					},
+					"name": "AddressesSrc"
+				},
+				{
+					"dataset": {
+						"referenceName": "customers",
+						"type": "DatasetReference"
+					},
+					"name": "CustomerSrc2"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "Customer_Orders",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				},
+				{
+					"dataset": {
+						"referenceName": "customerloyalty",
+						"type": "DatasetReference"
+					},
+					"name": "CustomerWithLoyalty"
+				},
+				{
+					"dataset": {
+						"referenceName": "customers_has_orders",
+						"type": "DatasetReference"
+					},
+					"name": "CustomerHasOrder"
+				}
+			],
+			"transformations": [
+				{
+					"name": "JoinCustomer"
+				},
+				{
+					"name": "JoinProduct"
+				},
+				{
+					"name": "JoinAddress"
+				},
+				{
+					"name": "SelectCustomerProduct"
+				},
+				{
+					"name": "CustomersLookup"
+				},
+				{
+					"name": "exist"
+				},
+				{
+					"name": "derivedColumn1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          customer_id as string,",
+				"          name as string,",
+				"          email as string,",
+				"          age as string,",
+				"          country as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     limit: 20,",
+				"     ignoreNoFilesFound: false) ~> CustomersSrc",
+				"source(output(",
+				"          order_id as string,",
+				"          customer_id as string,",
+				"          product_id as string,",
+				"          quantity as string,",
+				"          order_date as string,",
+				"          status as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     limit: 20,",
+				"     ignoreNoFilesFound: false) ~> OrdersSrc",
+				"source(output(",
+				"          product_id as string,",
+				"          product_name as string,",
+				"          category as string,",
+				"          price as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     limit: 20,",
+				"     ignoreNoFilesFound: false) ~> ProductsSrc",
+				"source(output(",
+				"          customer_id as string,",
+				"          is_loyal as string,",
+				"          loyalty_points as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     limit: 20,",
+				"     ignoreNoFilesFound: false) ~> LoyaltyLookupSrc",
+				"source(output(",
+				"          customer_id as string,",
+				"          name as string,",
+				"          email as string,",
+				"          age as string,",
+				"          country as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     limit: 20,",
+				"     ignoreNoFilesFound: false) ~> NewCustomersSrc",
+				"source(output(",
+				"          customer_id as string,",
+				"          city as string,",
+				"          state as string,",
+				"          zip as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     limit: 20,",
+				"     ignoreNoFilesFound: false) ~> AddressesSrc",
+				"source(output(",
+				"          customer_id as string,",
+				"          name as string,",
+				"          email as string,",
+				"          age as string,",
+				"          country as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> CustomerSrc2",
+				"OrdersSrc, CustomersSrc join(OrdersSrc@customer_id == CustomersSrc@customer_id,",
+				"     joinType:'inner',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> JoinCustomer",
+				"JoinCustomer, ProductsSrc join(OrdersSrc@product_id == ProductsSrc@product_id,",
+				"     joinType:'left',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> JoinProduct",
+				"JoinProduct, AddressesSrc join(CustomersSrc@customer_id == AddressesSrc@customer_id,",
+				"     joinType:'left',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> JoinAddress",
+				"JoinAddress select(mapColumn(",
+				"          order_id,",
+				"          quantity,",
+				"          customer_id = CustomersSrc@customer_id,",
+				"          name,",
+				"          product_name,",
+				"          price,",
+				"          city",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> SelectCustomerProduct",
+				"CustomersSrc, LoyaltyLookupSrc lookup(CustomersSrc@customer_id == LoyaltyLookupSrc@customer_id,",
+				"     multiple: false,",
+				"     pickup: 'any',",
+				"     broadcast: 'auto')~> CustomersLookup",
+				"CustomerSrc2, OrdersSrc exists(CustomerSrc2@customer_id == OrdersSrc@customer_id,",
+				"     negate:false,",
+				"     broadcast: 'auto')~> exist",
+				"exist derive(has_orders = true()) ~> derivedColumn1",
+				"SelectCustomerProduct sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> sink1",
+				"CustomersLookup sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> CustomerWithLoyalty",
+				"derivedColumn1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> CustomerHasOrder"
+			]
+		}
+	}
+}

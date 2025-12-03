@@ -1,0 +1,24 @@
+{
+	"name": "HighValueOrders",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_Storage_MyAccount",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"folderPath": "dataflow/conditional-split/highvalue",
+				"fileSystem": "my-container"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": []
+	},
+	"type": "Microsoft.Synapse/workspaces/datasets"
+}

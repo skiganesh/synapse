@@ -1,0 +1,21 @@
+{
+	"name": "DS_SHIR_Parquet_Sink",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_Storage_MyAccount",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "Parquet",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"folderPath": "SHIR_Parquet_Output",
+				"fileSystem": "my-container"
+			},
+			"compressionCodec": "snappy"
+		},
+		"schema": []
+	},
+	"type": "Microsoft.Synapse/workspaces/datasets"
+}

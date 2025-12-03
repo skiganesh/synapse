@@ -1,0 +1,64 @@
+{
+	"name": "TumblingDataFlow",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "tumbling_input",
+						"type": "DatasetReference"
+					},
+					"name": "TumblingSource"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "tumpling_processed",
+						"type": "DatasetReference"
+					},
+					"name": "Tumblingsink"
+				}
+			],
+			"transformations": [
+				{
+					"name": "DerivedEventTime"
+				},
+				{
+					"name": "FilterRows",
+					"description": "&& toTimestamp(event_time, 'yyyy-MM-ddTHH:mm:ssZ') < toTimestamp($df_windowEnd, 'yyyy-MM-ddTHH:mm:ssZ')"
+				}
+			],
+			"scriptLines": [
+				"parameters{",
+				"     df_windowStart as string,",
+				"     df_windowEnd as string",
+				"}",
+				"source(output(",
+				"          event_time as string,",
+				"          event_id as string,",
+				"          value as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     limit: 50,",
+				"     ignoreNoFilesFound: false,",
+				"     wildcardPaths:[(concat('tumbling-demo/input/events_', toString(toTimestamp($df_windowStart, 'yyyy-MM-dd HH:mm:ss'), 'yyyy-MM-dd_HH'), '.csv')\r",
+				")]) ~> TumblingSource",
+				"TumblingSource derive(event_ts = toTimestamp(event_time, 'yyyy-MM-dd\\'T\\'HH:mm:ss\\'Z\\'')) ~> DerivedEventTime",
+				"DerivedEventTime filter(event_ts >= toTimestamp($df_windowStart, 'yyyy-MM-dd HH:mm:ss')",
+				"&& event_ts  < toTimestamp($df_windowEnd, 'yyyy-MM-dd HH:mm:ss')) ~> FilterRows",
+				"FilterRows sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     filePattern:(concat('processed_', toString(toTimestamp($df_windowStart, 'yyyy-MM-dd HH:mm:ss'), 'yyyy-MM-dd_HH'), '.csv')),",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     partitionBy('hash', 1)) ~> Tumblingsink"
+			]
+		}
+	}
+}

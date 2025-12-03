@@ -1,0 +1,24 @@
+{
+	"name": "customerloyalty",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_Storage_MyAccount",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"folderPath": "dataflow/customers-loyalty",
+				"fileSystem": "my-container"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": []
+	},
+	"type": "Microsoft.Synapse/workspaces/datasets"
+}

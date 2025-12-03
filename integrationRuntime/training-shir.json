@@ -1,0 +1,6 @@
+{
+	"name": "training-shir",
+	"properties": {
+		"type": "SelfHosted"
+	}
+}

@@ -1,0 +1,55 @@
+{
+	"name": "Pl_Execute_Databricks",
+	"properties": {
+		"activities": [
+			{
+				"name": "ADB_Link_Demo",
+				"type": "DatabricksNotebook",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"notebookPath": "/Users/skiganesh@gmail.com/Synapse_ADB_Link_Demo",
+					"baseParameters": {
+						"env": {
+							"value": "@pipeline().parameters.p_env",
+							"type": "Expression"
+						},
+						"year": {
+							"value": "@pipeline().parameters.p_year",
+							"type": "Expression"
+						},
+						"input_path": {
+							"value": "@pipeline().parameters.p_inputPath",
+							"type": "Expression"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "lsadbucwsdemo",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"parameters": {
+			"p_env": {
+				"type": "string"
+			},
+			"p_year": {
+				"type": "string"
+			},
+			"p_inputPath": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2025-11-21T10:35:09Z"
+	},
+	"type": "Microsoft.Synapse/workspaces/pipelines"
+}

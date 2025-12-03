@@ -1,0 +1,125 @@
+{
+	"name": "PL_Until_FileCheck",
+	"properties": {
+		"activities": [
+			{
+				"name": "Until1",
+				"type": "Until",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@equals(variables('FileExists'), true)\n",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "Check_File_Exists",
+							"type": "GetMetadata",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"dataset": {
+									"referenceName": "DS_ValidationDemo_File",
+									"type": "DatasetReference"
+								},
+								"fieldList": [
+									"exists"
+								],
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							}
+						},
+						{
+							"name": "Set_FileExists",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Check_File_Exists",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "FileExists",
+								"value": {
+									"value": "@activity('Check_File_Exists').output.exists\n",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Wait_5_Seconds",
+							"type": "Wait",
+							"dependsOn": [
+								{
+									"activity": "Set_FileExists",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"waitTimeInSeconds": 5
+							}
+						}
+					],
+					"timeout": "0.12:00:00"
+				}
+			},
+			{
+				"name": "Log_Message",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "Until1",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "Log",
+					"value": "'File detected. Proceeding to next step.'"
+				}
+			}
+		],
+		"variables": {
+			"FileExists": {
+				"type": "Boolean",
+				"defaultValue": false
+			},
+			"Log": {
+				"type": "String"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2025-10-25T04:11:58Z"
+	},
+	"type": "Microsoft.Synapse/workspaces/pipelines"
+}

@@ -1,0 +1,31 @@
+{
+	"name": "Config_Json",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_Storage_MyAccount",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "Json",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"fileName": "Config.json",
+				"folderPath": "config",
+				"fileSystem": "my-container"
+			}
+		},
+		"schema": {
+			"type": "object",
+			"properties": {
+				"FileName": {
+					"type": "string"
+				},
+				"ProcessFlag": {
+					"type": "string"
+				}
+			}
+		}
+	},
+	"type": "Microsoft.Synapse/workspaces/datasets"
+}

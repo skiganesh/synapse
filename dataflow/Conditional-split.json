@@ -1,0 +1,112 @@
+{
+	"name": "Conditional-split",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "orders",
+						"type": "DatasetReference"
+					},
+					"name": "Orders"
+				},
+				{
+					"dataset": {
+						"referenceName": "products",
+						"type": "DatasetReference"
+					},
+					"name": "product"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "HighValueOrders",
+						"type": "DatasetReference"
+					},
+					"name": "HighValueSink"
+				},
+				{
+					"dataset": {
+						"referenceName": "Problemorder",
+						"type": "DatasetReference"
+					},
+					"name": "problemsink"
+				},
+				{
+					"dataset": {
+						"referenceName": "normalorder",
+						"type": "DatasetReference"
+					},
+					"name": "normalsink"
+				}
+			],
+			"transformations": [
+				{
+					"name": "joinproduct"
+				},
+				{
+					"name": "derivedColumnproduct"
+				},
+				{
+					"name": "conditionalsplit"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          order_id as string,",
+				"          customer_id as string,",
+				"          product_id as string,",
+				"          quantity as integer,",
+				"          order_date as string,",
+				"          status as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     limit: 100,",
+				"     ignoreNoFilesFound: false) ~> Orders",
+				"source(output(",
+				"          product_id as string,",
+				"          product_name as string,",
+				"          category as string,",
+				"          price as double",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     limit: 100,",
+				"     ignoreNoFilesFound: false) ~> product",
+				"Orders, product join(Orders@product_id == product@product_id,",
+				"     joinType:'inner',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> joinproduct",
+				"joinproduct derive(order_value = quantity * price) ~> derivedColumnproduct",
+				"derivedColumnproduct split(order_value > 100,",
+				"     status == 'Returned' || status == 'Cancelled',",
+				"     disjoint: false) ~> conditionalsplit@(HighValue, ProblemOrders, NormalOrders)",
+				"conditionalsplit@HighValue sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> HighValueSink",
+				"conditionalsplit@ProblemOrders sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> problemsink",
+				"conditionalsplit@NormalOrders sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> normalsink"
+			]
+		}
+	}
+}

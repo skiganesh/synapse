@@ -1,0 +1,21 @@
+{
+	"name": "SqlServer_Onprem",
+	"type": "Microsoft.Synapse/workspaces/linkedservices",
+	"properties": {
+		"annotations": [],
+		"type": "SqlServer",
+		"typeProperties": {
+			"server": "localhost",
+			"database": "TrainingDB",
+			"encrypt": "True",
+			"trustServerCertificate": true,
+			"authenticationType": "SQL",
+			"userName": "synapse_user",
+			"encryptedCredential": "eyJDcmVkZW50aWFsSWQiOiJiN2UyNTkwNC1iNmY2LTQzMGEtOWQ3Mi01N2JlNmZiYTFkZWMiLCJWZXJzaW9uIjoiMi4wIiwiQ2xhc3NUeXBlIjoiTWljcm9zb2Z0LkRhdGFQcm94eS5Db3JlLkludGVyU2VydmljZURhdGFDb250cmFjdC5DcmVkZW50aWFsU1UwNkNZMTQifQ=="
+		},
+		"connectVia": {
+			"referenceName": "training-shir",
+			"type": "IntegrationRuntimeReference"
+		}
+	}
+}

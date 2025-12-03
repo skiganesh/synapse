@@ -1,0 +1,12 @@
+{
+	"name": "LSRetailSales",
+	"type": "Microsoft.Synapse/workspaces/linkedservices",
+	"properties": {
+		"annotations": [],
+		"type": "PowerBIWorkspace",
+		"typeProperties": {
+			"workspaceID": "102e67de-c204-40ae-ad6d-26b6d5e22917",
+			"tenantID": "0e2550ab-88cf-4296-a101-f59b0ce63477"
+		}
+	}
+}

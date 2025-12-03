@@ -1,0 +1,31 @@
+{
+	"name": "PL_WebHook_Demo",
+	"properties": {
+		"activities": [
+			{
+				"name": "Trigger_External_Service",
+				"type": "WebHook",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"url": "https://webhook.site/79ec6e2b-7420-4a6e-b6d4-b72344df0c61",
+					"method": "POST",
+					"body": {
+						"jobId": 12345,
+						"status": "started"
+					},
+					"timeout": "00:10:00"
+				}
+			}
+		],
+		"annotations": [],
+		"lastPublishTime": "2025-10-21T13:33:59Z"
+	},
+	"type": "Microsoft.Synapse/workspaces/pipelines"
+}

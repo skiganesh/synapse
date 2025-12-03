@@ -1,0 +1,75 @@
+{
+	"name": "pl_test_appendvariable",
+	"properties": {
+		"activities": [
+			{
+				"name": "AppendFistValue",
+				"type": "AppendVariable",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "MyArray",
+					"value": "TestValue1"
+				}
+			},
+			{
+				"name": "AppendSecondValue",
+				"type": "AppendVariable",
+				"dependsOn": [
+					{
+						"activity": "AppendFistValue",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "MyArray",
+					"value": "TestValue2"
+				}
+			},
+			{
+				"name": "Set variable value",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "AppendSecondValue",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "MySetArray",
+					"value": [
+						"@variables('MyArray')"
+					]
+				}
+			}
+		],
+		"variables": {
+			"MyArray": {
+				"type": "Array",
+				"defaultValue": []
+			},
+			"MyAppendArray": {
+				"type": "Array"
+			},
+			"MySecondAppendVariable": {
+				"type": "Array"
+			},
+			"MySetArray": {
+				"type": "Array"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2025-10-20T06:55:30Z"
+	},
+	"type": "Microsoft.Synapse/workspaces/pipelines"
+}

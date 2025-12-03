@@ -1,0 +1,49 @@
+{
+	"name": "DataFlow-Filter",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "DS_Customers_Source",
+						"type": "DatasetReference"
+					},
+					"name": "customersource"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "DS_Customers_Sink",
+						"type": "DatasetReference"
+					},
+					"name": "customersink"
+				}
+			],
+			"transformations": [
+				{
+					"name": "FilterIndiaCustomers"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          CustID as string,",
+				"          Name as string,",
+				"          Country as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> customersource",
+				"customersource filter(Country == 'India') ~> FilterIndiaCustomers",
+				"FilterIndiaCustomers sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> customersink"
+			]
+		}
+	}
+}

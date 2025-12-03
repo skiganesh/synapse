@@ -1,0 +1,40 @@
+{
+	"name": "PL_Validation_Demo",
+	"properties": {
+		"activities": [
+			{
+				"name": "Check_File_Exists",
+				"type": "Validation",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"dataset": {
+						"referenceName": "DS_ValidationDemo_File",
+						"type": "DatasetReference"
+					},
+					"timeout": "0.00:00:30",
+					"sleep": 5
+				}
+			},
+			{
+				"name": "Wait1",
+				"type": "Wait",
+				"dependsOn": [
+					{
+						"activity": "Check_File_Exists",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"waitTimeInSeconds": 1
+				}
+			}
+		],
+		"annotations": [],
+		"lastPublishTime": "2025-10-20T16:37:15Z"
+	},
+	"type": "Microsoft.Synapse/workspaces/pipelines"
+}

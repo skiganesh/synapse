@@ -1,0 +1,17 @@
+{
+	"name": "SQL_RetailDB",
+	"properties": {
+		"content": {
+			"query": "CREATE DATABASE RetailDB;\nGO\nUSE RetailDB;\nGO\n\nCREATE MASTER KEY ENCRYPTION BY PASSWORD = 'sasSql@25';\nGO\n\nCREATE DATABASE SCOPED CREDENTIAL SynapseMI\nWITH IDENTITY = 'Managed Identity';\nGO\n\nCREATE EXTERNAL DATA SOURCE RetailDataLake\nWITH (\n    LOCATION = 'https://dftestsa1910.dfs.core.windows.net/',\n    CREDENTIAL = SynapseMI);  -- or SAS_Credential);\nGO\n\nCREATE EXTERNAL FILE FORMAT CsvFormat\nWITH (\n    FORMAT_TYPE = DELIMITEDTEXT,\n    FORMAT_OPTIONS (FIELD_TERMINATOR = ',', STRING_DELIMITER = '\"', FIRST_ROW = 2)\n);\nGO\n\nCREATE EXTERNAL TABLE dbo.Retail_Sales_Sample_Data\n(\n    [OrderID] INT,\n    [OrderDate] DATE,                         -- ✅ Changed to DATE\n    [Region] NVARCHAR(50),                    -- ✅ Shortened to 50\n    [Category] NVARCHAR(50),                  -- ✅ Shortened to 50\n    [Product] NVARCHAR(100),                  -- ✅ Slightly larger, product names vary\n    [Quantity] INT,\n    [UnitPrice] INT,\n    [Discount] INT,\n    [SalesAmount] FLOAT,\n    [Profit] FLOAT\n)\nWITH (\n    LOCATION = 'my-container/retail_sample/Retail_Sales_Sample_Data.csv',\n    DATA_SOURCE = RetailDataLake,\n    FILE_FORMAT = CsvFormat\n);\nGO\n\nSELECT TOP 10 * FROM dbo.Retail_Sales_Sample_Data;\ngo\n\n-- List all users in the current database\nSELECT name AS [UserName],\n       type_desc AS [UserType]\nFROM sys.database_principals\nWHERE type IN ('S', 'E', 'X', 'U') \n  AND name NOT LIKE '##%';\n  go\n\n\n  -- List all database roles and their members\nSELECT r.name AS RoleName,\n       m.name AS MemberName\nFROM sys.database_role_members drm\nJOIN sys.database_principals r ON drm.role_principal_id = r.principal_id\nJOIN sys.database_principals m ON drm.member_principal_id = m.principal_id\nORDER BY r.name;\ngo\n\n\n-- Create AAD user for Power BI or your user\nCREATE USER [purviewtester@skiganeshgmail.onmicrosoft.com] FROM EXTERNAL PROVIDER;\nGO\n\n-- Grant read permissions\nALTER ROLE db_datareader ADD MEMBER [purviewtester@skiganeshgmail.onmicrosoft.com];\nGO\n\n-- Grant your user access to use the credential\nGRANT REFERENCES ON DATABASE SCOPED CREDENTIAL::[SynapseMI]\nTO [purviewtester@skiganeshgmail.onmicrosoft.com];\nGO\n\n\nSELECT *\nFROM sys.database_scoped_credentials;\nGO\n\nSELECT *\nFROM sys.external_data_sources;\nGO\n",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "RetailDB",
+				"poolName": "Built-in"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}

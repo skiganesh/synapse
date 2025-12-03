@@ -1,0 +1,19 @@
+{
+	"name": "Binary_ds",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_Storage_MyAccount",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "Binary",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobFSLocation",
+				"folderPath": "landing",
+				"fileSystem": "my-container"
+			}
+		}
+	},
+	"type": "Microsoft.Synapse/workspaces/datasets"
+}
