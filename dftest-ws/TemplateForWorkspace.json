@@ -1,0 +1,3992 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"workspaceName": {
+			"type": "string",
+			"metadata": "Workspace name",
+			"defaultValue": "dftest-ws"
+		},
+		"SqlServer_Onprem_password": {
+			"type": "secureString",
+			"metadata": "Secure string for 'password' of 'SqlServer_Onprem'"
+		},
+		"dftest-ws-WorkspaceDefaultSqlServer_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'dftest-ws-WorkspaceDefaultSqlServer'",
+			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=tcp:dftest-ws.sql.azuresynapse.net,1433;Initial Catalog=@{linkedService().DBName}"
+		},
+		"LS_Storage_MyAccount_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://dftestsa1910.dfs.core.windows.net/"
+		},
+		"SqlServer_Onprem_properties_typeProperties_server": {
+			"type": "string",
+			"defaultValue": "localhost"
+		},
+		"SqlServer_Onprem_properties_typeProperties_database": {
+			"type": "string",
+			"defaultValue": "TrainingDB"
+		},
+		"SqlServer_Onprem_properties_typeProperties_userName": {
+			"type": "string",
+			"defaultValue": "synapse_user"
+		},
+		"dftest-ws-WorkspaceDefaultStorage_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://dftestsa1910.dfs.core.windows.net"
+		},
+		"Batch_Event_Trigger_Sales_properties_PL_Event_Ingest_ByCategory_parameters_p_folderPath": {
+			"type": "string",
+			"defaultValue": "@triggerBody().folderPath"
+		},
+		"Batch_Event_Trigger_Sales_properties_PL_Event_Ingest_ByCategory_parameters_p_fileName": {
+			"type": "string",
+			"defaultValue": "@triggerBody().fileName"
+		},
+		"Batch_Event_Trigger_Sales_properties_typeProperties_scope": {
+			"type": "string",
+			"defaultValue": "/subscriptions/5499f583-85ce-4ef3-acb8-a530627b63a1/resourceGroups/dftest_rg/providers/Microsoft.Storage/storageAccounts/dftestsa1910"
+		},
+		"Event_Trigger_Test_properties_typeProperties_scope": {
+			"type": "string",
+			"defaultValue": "/subscriptions/5499f583-85ce-4ef3-acb8-a530627b63a1/resourceGroups/dftest_rg/providers/Microsoft.Storage/storageAccounts/dftestsa1910"
+		},
+		"Tumbling_Filter_Trigger_properties_pipeline_parameters_windowStart": {
+			"type": "string",
+			"defaultValue": "@trigger().outputs.windowStartTime"
+		},
+		"Tumbling_Filter_Trigger_properties_pipeline_parameters_windowEnd": {
+			"type": "string",
+			"defaultValue": "@trigger().outputs.windowEndTime"
+		},
+		"Tumbling_Trigger_properties_pipeline_parameters_windowStart": {
+			"type": "string",
+			"defaultValue": "@trigger().outputs.windowStartTime"
+		},
+		"Tumbling_Trigger_properties_pipeline_parameters_windowEnd": {
+			"type": "string",
+			"defaultValue": "@trigger().outputs.windowEndTime"
+		}
+	},
+	"variables": {
+		"workspaceId": "[concat('Microsoft.Synapse/workspaces/', parameters('workspaceName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('workspaceName'), '/PL_Event_Ingest_ByCategory')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "Copy_Routed_File",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "BinarySource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true
+								},
+								"formatSettings": {
+									"type": "BinaryReadSettings"
+								}
+							},
+							"sink": {
+								"type": "BinarySink",
+								"storeSettings": {
+									"type": "AzureBlobFSWriteSettings",
+									"copyBehavior": "PreserveHierarchy"
+								}
+							},
+							"enableStaging": false
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_Input_Generic",
+								"type": "DatasetReference",
+								"parameters": {
+									"folderPath": {
+										"value": "@substring(pipeline().parameters.p_folderPath, \n            add(indexOf(pipeline().parameters.p_folderPath, '/'), 1), \n            sub(length(pipeline().parameters.p_folderPath), add(indexOf(pipeline().parameters.p_folderPath, '/'), 1)))\n",
+										"type": "Expression"
+									},
+									"fileName": {
+										"value": "@pipeline().parameters.p_fileName",
+										"type": "Expression"
+									}
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_Bronze_Generic",
+								"type": "DatasetReference",
+								"parameters": {
+									"folderPath": {
+										"value": "@replace(substring(pipeline().parameters.p_folderPath, add(indexOf(pipeline().parameters.p_folderPath, 'batch_event_pipeline/'), 0), sub(length(pipeline().parameters.p_folderPath), indexOf(pipeline().parameters.p_folderPath, 'batch_event_pipeline/'))), 'input/', 'bronze/')",
+										"type": "Expression"
+									},
+									"fileName": {
+										"value": "@pipeline().parameters.p_fileName",
+										"type": "Expression"
+									}
+								}
+							}
+						]
+					},
+					{
+						"name": "Validate_PipelineVariable_folderPath",
+						"type": "SetVariable",
+						"state": "Inactive",
+						"onInactiveMarkAs": "Succeeded",
+						"dependsOn": [],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "folderPath",
+							"value": {
+								"value": "@replace(substring(pipeline().parameters.p_folderPath, add(indexOf(pipeline().parameters.p_folderPath, 'batch_event_pipeline/'), 0), sub(length(pipeline().parameters.p_folderPath), indexOf(pipeline().parameters.p_folderPath, 'batch_event_pipeline/'))), 'input/', 'bronze/')",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Validate_PipelineVariable_fileName",
+						"type": "SetVariable",
+						"state": "Inactive",
+						"onInactiveMarkAs": "Succeeded",
+						"dependsOn": [
+							{
+								"activity": "Validate_PipelineVariable_folderPath",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "filename",
+							"value": {
+								"value": "@pipeline().parameters.p_fileName",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"p_folderPath": {
+						"type": "string"
+					},
+					"p_fileName": {
+						"type": "string"
+					}
+				},
+				"variables": {
+					"filename": {
+						"type": "String"
+					},
+					"filePath": {
+						"type": "String"
+					},
+					"folderPath": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"lastPublishTime": "2025-11-05T16:54:57Z"
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/datasets/DS_Input_Generic')]",
+				"[concat(variables('workspaceId'), '/datasets/DS_Bronze_Generic')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/PL_Lookup_Demo')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "ReadConfigFile",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "JsonSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "JsonReadSettings"
+								}
+							},
+							"dataset": {
+								"referenceName": "Config_Json",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "Filter_ProcessFlagY",
+						"type": "Filter",
+						"dependsOn": [
+							{
+								"activity": "ReadConfigFile",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('ReadConfigFile').output.value",
+								"type": "Expression"
+							},
+							"condition": {
+								"value": "@equals(item().ProcessFlag, 'Y')",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Loop_ProcessedFiles",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Filter_ProcessFlagY",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Filter_ProcessFlagY').output.value\n",
+								"type": "Expression"
+							},
+							"activities": [
+								{
+									"name": "AppendFileNames",
+									"type": "AppendVariable",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "ProcessedFiles",
+										"value": {
+											"value": "@item().FileName\n",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "Set_CurrentFile",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "Loop_ProcessedFiles",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "pipelineReturnValue",
+							"value": [
+								{
+									"key": "MessageFromChild",
+									"value": {
+										"type": "Expression",
+										"content": "@string(variables('ProcessedFiles'))"
+									}
+								}
+							],
+							"setSystemVariable": true
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"variables": {
+					"CurrentFile": {
+						"type": "Array"
+					},
+					"ProcessedFiles": {
+						"type": "Array"
+					},
+					"ResultMessage": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"lastPublishTime": "2025-10-20T12:53:35Z"
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/datasets/Config_Json')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/PL_Mapping_DataFlow_Demo')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "DF_Filter_Customers",
+						"type": "ExecuteDataFlow",
+						"state": "Inactive",
+						"onInactiveMarkAs": "Succeeded",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "DataFlow-Filter",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"customersource": {},
+									"customersink": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2025-10-23T13:19:48Z"
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/dataflows/DataFlow-Filter')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/PL_Process_Landing_Files')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "GetFiles",
+						"type": "GetMetadata",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "DS_File_Param",
+								"type": "DatasetReference",
+								"parameters": {
+									"folderPath": "landing",
+									"fileName": "\"\""
+								}
+							},
+							"fieldList": [
+								"childItems"
+							],
+							"storeSettings": {
+								"type": "AzureBlobFSReadSettings",
+								"recursive": true,
+								"enablePartitionDiscovery": false
+							},
+							"formatSettings": {
+								"type": "DelimitedTextReadSettings"
+							}
+						}
+					},
+					{
+						"name": "If Condition1",
+						"type": "IfCondition",
+						"state": "Inactive",
+						"onInactiveMarkAs": "Succeeded",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@greater(length(activity('GetFiles').output.childItems), 0)",
+								"type": "Expression"
+							},
+							"ifFalseActivities": [
+								{
+									"name": "FileNotExist",
+									"type": "SetVariable",
+									"dependsOn": [],
+									"policy": {
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "pipelineReturnValue",
+										"value": [
+											{
+												"key": "IsfileExist",
+												"value": {
+													"type": "String",
+													"content": "No Files"
+												}
+											}
+										],
+										"setSystemVariable": true
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "ForEach_File",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "GetFiles",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('GetFiles').output.childItems",
+								"type": "Expression"
+							},
+							"activities": [
+								{
+									"name": "GetMeta_CurrentFile",
+									"type": "GetMetadata",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"dataset": {
+											"referenceName": "DS_File_Param",
+											"type": "DatasetReference",
+											"parameters": {
+												"folderPath": "landing",
+												"fileName": "@item().name"
+											}
+										},
+										"fieldList": [
+											"exists",
+											"lastModified"
+										],
+										"storeSettings": {
+											"type": "AzureBlobFSReadSettings",
+											"recursive": true,
+											"enablePartitionDiscovery": false
+										},
+										"formatSettings": {
+											"type": "DelimitedTextReadSettings"
+										}
+									}
+								},
+								{
+									"name": "If Condition2",
+									"type": "IfCondition",
+									"dependsOn": [
+										{
+											"activity": "GetMeta_CurrentFile",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"expression": {
+											"value": "@greater(activity('GetMeta_CurrentFile').output.size, 0)\n",
+											"type": "Expression"
+										},
+										"ifFalseActivities": [
+											{
+												"name": "Append Variable skip",
+												"type": "AppendVariable",
+												"dependsOn": [],
+												"userProperties": [],
+												"typeProperties": {
+													"variableName": "skip",
+													"value": {
+														"value": "@concat(item().name,' | Skipped (empty) | ', utcNow())",
+														"type": "Expression"
+													}
+												}
+											}
+										],
+										"ifTrueActivities": [
+											{
+												"name": "Copy_To_Processed",
+												"type": "Copy",
+												"dependsOn": [],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"source": {
+														"type": "DelimitedTextSource",
+														"storeSettings": {
+															"type": "AzureBlobFSReadSettings",
+															"recursive": true,
+															"wildcardFolderPath": "landing",
+															"wildcardFileName": "*",
+															"enablePartitionDiscovery": false
+														},
+														"formatSettings": {
+															"type": "DelimitedTextReadSettings"
+														}
+													},
+													"sink": {
+														"type": "DelimitedTextSink",
+														"storeSettings": {
+															"type": "AzureBlobFSWriteSettings"
+														},
+														"formatSettings": {
+															"type": "DelimitedTextWriteSettings",
+															"quoteAllText": true,
+															"fileExtension": ".txt"
+														}
+													},
+													"enableStaging": false,
+													"translator": {
+														"type": "TabularTranslator",
+														"typeConversion": true,
+														"typeConversionSettings": {
+															"allowDataTruncation": true,
+															"treatBooleanAsNumber": false
+														}
+													}
+												},
+												"inputs": [
+													{
+														"referenceName": "DS_File_Param",
+														"type": "DatasetReference",
+														"parameters": {
+															"folderPath": "landing",
+															"fileName": "@item().name"
+														}
+													}
+												],
+												"outputs": [
+													{
+														"referenceName": "DS_Processed_Param",
+														"type": "DatasetReference",
+														"parameters": {
+															"folderPath": "processed"
+														}
+													}
+												]
+											},
+											{
+												"name": "Delete1",
+												"type": "Delete",
+												"dependsOn": [
+													{
+														"activity": "Copy_To_Processed",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"policy": {
+													"timeout": "0.12:00:00",
+													"retry": 0,
+													"retryIntervalInSeconds": 30,
+													"secureOutput": false,
+													"secureInput": false
+												},
+												"userProperties": [],
+												"typeProperties": {
+													"dataset": {
+														"referenceName": "DS_File_Param",
+														"type": "DatasetReference",
+														"parameters": {
+															"folderPath": "landing",
+															"fileName": "@item().name"
+														}
+													},
+													"enableLogging": false,
+													"storeSettings": {
+														"type": "AzureBlobFSReadSettings",
+														"recursive": true,
+														"enablePartitionDiscovery": false
+													}
+												}
+											},
+											{
+												"name": "Append_Log",
+												"type": "AppendVariable",
+												"dependsOn": [
+													{
+														"activity": "Delete1",
+														"dependencyConditions": [
+															"Succeeded"
+														]
+													}
+												],
+												"userProperties": [],
+												"typeProperties": {
+													"variableName": "run_log",
+													"value": {
+														"value": "@{concat(item().name, ' | Success | ', utcNow())}\n",
+														"type": "Expression"
+													}
+												}
+											}
+										]
+									}
+								},
+								{
+									"name": "Append Variable",
+									"type": "AppendVariable",
+									"dependsOn": [
+										{
+											"activity": "GetMeta_CurrentFile",
+											"dependencyConditions": [
+												"Failed"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "skip",
+										"value": {
+											"value": "@concat(item().name,' | Skipped (empty) | ', utcNow())",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "runStatus",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "ForEach_File",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "status",
+							"value": "Completed"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"variables": {
+					"skip": {
+						"type": "Array"
+					},
+					"run_log": {
+						"type": "Array"
+					},
+					"status": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"lastPublishTime": "2025-10-19T14:36:28Z"
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/datasets/DS_File_Param')]",
+				"[concat(variables('workspaceId'), '/datasets/DS_Processed_Param')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/PL_Switch_Demo')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "Switch_FileType",
+						"type": "Switch",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"on": {
+								"value": "@variables('FileType')\n",
+								"type": "Expression"
+							},
+							"cases": [
+								{
+									"value": "csv",
+									"activities": [
+										{
+											"name": "Wait2",
+											"type": "Wait",
+											"dependsOn": [],
+											"userProperties": [],
+											"typeProperties": {
+												"waitTimeInSeconds": 1
+											}
+										}
+									]
+								},
+								{
+									"value": "json",
+									"activities": [
+										{
+											"name": "Wait3",
+											"type": "Wait",
+											"dependsOn": [],
+											"userProperties": [],
+											"typeProperties": {
+												"waitTimeInSeconds": 1
+											}
+										}
+									]
+								}
+							],
+							"defaultActivities": [
+								{
+									"name": "Wait1",
+									"type": "Wait",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"waitTimeInSeconds": 1
+									}
+								}
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"variables": {
+					"FileType": {
+						"type": "String",
+						"defaultValue": "json"
+					}
+				},
+				"annotations": [],
+				"lastPublishTime": "2025-10-22T07:10:36Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/PL_Until_FileCheck')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "Until1",
+						"type": "Until",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"expression": {
+								"value": "@equals(variables('FileExists'), true)\n",
+								"type": "Expression"
+							},
+							"activities": [
+								{
+									"name": "Check_File_Exists",
+									"type": "GetMetadata",
+									"dependsOn": [],
+									"policy": {
+										"timeout": "0.12:00:00",
+										"retry": 0,
+										"retryIntervalInSeconds": 30,
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"dataset": {
+											"referenceName": "DS_ValidationDemo_File",
+											"type": "DatasetReference",
+											"parameters": {}
+										},
+										"fieldList": [
+											"exists"
+										],
+										"storeSettings": {
+											"type": "AzureBlobFSReadSettings",
+											"recursive": true,
+											"enablePartitionDiscovery": false
+										},
+										"formatSettings": {
+											"type": "DelimitedTextReadSettings"
+										}
+									}
+								},
+								{
+									"name": "Set_FileExists",
+									"type": "SetVariable",
+									"dependsOn": [
+										{
+											"activity": "Check_File_Exists",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"policy": {
+										"secureOutput": false,
+										"secureInput": false
+									},
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "FileExists",
+										"value": {
+											"value": "@activity('Check_File_Exists').output.exists\n",
+											"type": "Expression"
+										}
+									}
+								},
+								{
+									"name": "Wait_5_Seconds",
+									"type": "Wait",
+									"dependsOn": [
+										{
+											"activity": "Set_FileExists",
+											"dependencyConditions": [
+												"Succeeded"
+											]
+										}
+									],
+									"userProperties": [],
+									"typeProperties": {
+										"waitTimeInSeconds": 5
+									}
+								}
+							],
+							"timeout": "0.12:00:00"
+						}
+					},
+					{
+						"name": "Log_Message",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "Until1",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "Log",
+							"value": "'File detected. Proceeding to next step.'"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"variables": {
+					"FileExists": {
+						"type": "Boolean",
+						"defaultValue": false
+					},
+					"Log": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"lastPublishTime": "2025-10-25T04:11:58Z"
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/datasets/DS_ValidationDemo_File')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/PL_Validation_Demo')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "Check_File_Exists",
+						"type": "Validation",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "DS_ValidationDemo_File",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"timeout": "0.00:00:30",
+							"sleep": 5
+						}
+					},
+					{
+						"name": "Wait1",
+						"type": "Wait",
+						"dependsOn": [
+							{
+								"activity": "Check_File_Exists",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"waitTimeInSeconds": 1
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2025-10-20T16:37:15Z"
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/datasets/DS_ValidationDemo_File')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/PL_WebActivity_Demo')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "Call_TestAPI",
+						"type": "WebActivity",
+						"state": "Inactive",
+						"onInactiveMarkAs": "Succeeded",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.00:11:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"method": "GET",
+							"headers": {},
+							"url": "https://jsonplaceholder.typicode.com/posts/1",
+							"connectVia": {
+								"referenceName": "AutoResolveIntegrationRuntime",
+								"type": "IntegrationRuntimeReference"
+							}
+						}
+					},
+					{
+						"name": "SetVariable",
+						"type": "SetVariable",
+						"state": "Inactive",
+						"onInactiveMarkAs": "Succeeded",
+						"dependsOn": [
+							{
+								"activity": "Call_TestAPI",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "PostTitle",
+							"value": {
+								"value": "@activity('Call_TestAPI').output.title\n",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"variables": {
+					"PostTitle": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"lastPublishTime": "2025-10-21T13:33:56Z"
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/PL_WebHook_Demo')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "Trigger_External_Service",
+						"type": "WebHook",
+						"state": "Inactive",
+						"onInactiveMarkAs": "Succeeded",
+						"dependsOn": [],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"url": "https://webhook.site/79ec6e2b-7420-4a6e-b6d4-b72344df0c61",
+							"method": "POST",
+							"headers": {},
+							"body": {
+								"jobId": 12345,
+								"status": "started"
+							},
+							"timeout": "00:10:00"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2025-10-21T13:33:59Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/P_DataFlow_TumblingFilter')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "TumblingDataFlow",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "TumblingDataFlow",
+								"type": "DataFlowReference",
+								"parameters": {
+									"df_windowStart": {
+										"value": "'@{pipeline().parameters.windowStart}'",
+										"type": "Expression"
+									},
+									"df_windowEnd": {
+										"value": "'@{pipeline().parameters.windowEnd}'",
+										"type": "Expression"
+									}
+								},
+								"datasetParameters": {
+									"TumblingSource": {
+										"p_folderPath": "tumbling-demo/input",
+										"p_fileName": {
+											"value": "@concat('events_', formatDateTime(pipeline().parameters.windowStart,'yyyy-MM-dd_HH'), '.csv')",
+											"type": "Expression"
+										}
+									},
+									"Tumblingsink": {
+										"p_folderPath": "tumbling-demo/processed",
+										"p_fileName": "@concat('processed_', formatDateTime(pipeline().parameters.windowEnd,'yyyyMMddHHmm'), '.csv')"
+									}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					},
+					{
+						"name": "CheckParameter",
+						"type": "SetVariable",
+						"state": "Inactive",
+						"onInactiveMarkAs": "Succeeded",
+						"dependsOn": [],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "StartTime",
+							"value": {
+								"value": "@pipeline().parameters.windowStart",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"windowStart": {
+						"type": "string"
+					},
+					"windowEnd": {
+						"type": "string"
+					}
+				},
+				"variables": {
+					"StartTime": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"lastPublishTime": "2025-11-10T17:20:37Z"
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/dataflows/TumblingDataFlow')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Pl_CopyData_Demo')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "Copy_Input_to_Output",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"sink": {
+								"type": "DelimitedTextSink",
+								"storeSettings": {
+									"type": "AzureBlobFSWriteSettings"
+								},
+								"formatSettings": {
+									"type": "DelimitedTextWriteSettings",
+									"quoteAllText": true,
+									"fileExtension": ".txt"
+								}
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_ADLS_Source",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_ADLS_Sink",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2025-10-22T10:11:02Z"
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/datasets/DS_ADLS_Source')]",
+				"[concat(variables('workspaceId'), '/datasets/DS_ADLS_Sink')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Pl_CpData_SHIR')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "Copy_Onprem_To_ADLS",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "SqlServerSource",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"sink": {
+								"type": "ParquetSink",
+								"storeSettings": {
+									"type": "AzureBlobFSWriteSettings",
+									"copyBehavior": "PreserveHierarchy"
+								},
+								"formatSettings": {
+									"type": "ParquetWriteSettings"
+								}
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "CustomerId",
+											"type": "Int32",
+											"physicalType": "int"
+										},
+										"sink": {
+											"name": "CustomerId",
+											"type": "String",
+											"physicalType": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "Name",
+											"type": "String",
+											"physicalType": "nvarchar"
+										},
+										"sink": {
+											"name": "Name",
+											"type": "String",
+											"physicalType": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "City",
+											"type": "String",
+											"physicalType": "nvarchar"
+										},
+										"sink": {
+											"name": "City",
+											"type": "String",
+											"physicalType": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "CreatedDate",
+											"type": "DateTime",
+											"physicalType": "datetime"
+										},
+										"sink": {
+											"name": "CreatedDate",
+											"type": "String",
+											"physicalType": "String"
+										}
+									}
+								],
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_OnpremTrainingDB",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_SHIR_Parquet_Sink",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2025-12-02T11:34:37Z"
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/datasets/DS_OnpremTrainingDB')]",
+				"[concat(variables('workspaceId'), '/datasets/DS_SHIR_Parquet_Sink')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Pl_DataFlow_Optoins')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "DataFlow2",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "Dataflow1",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"CustomersSrc": {},
+									"OrdersSrc": {},
+									"ProductsSrc": {},
+									"LoyaltyLookupSrc": {},
+									"NewCustomersSrc": {},
+									"AddressesSrc": {},
+									"CustomerSrc2": {},
+									"sink1": {},
+									"CustomerWithLoyalty": {},
+									"CustomerHasOrder": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2025-10-23T06:55:10Z"
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/dataflows/Dataflow1')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Pl_Event_Test')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "Copy_To_Testout",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "BinarySource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true
+								},
+								"formatSettings": {
+									"type": "BinaryReadSettings"
+								}
+							},
+							"sink": {
+								"type": "BinarySink",
+								"storeSettings": {
+									"type": "AzureBlobFSWriteSettings",
+									"maxConcurrentConnections": 0,
+									"copyBehavior": "PreserveHierarchy"
+								}
+							},
+							"enableStaging": false
+						},
+						"inputs": [
+							{
+								"referenceName": "ds_input_file_0411",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "ds_output_file_0411",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2025-11-04T10:27:20Z"
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/datasets/ds_input_file_0411')]",
+				"[concat(variables('workspaceId'), '/datasets/ds_output_file_0411')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Pl_Execute_Databricks')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "ADB_Link_Demo",
+						"type": "DatabricksNotebook",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"notebookPath": "/Users/skiganesh@gmail.com/Synapse_ADB_Link_Demo",
+							"baseParameters": {
+								"env": {
+									"value": "@pipeline().parameters.p_env",
+									"type": "Expression"
+								},
+								"year": {
+									"value": "@pipeline().parameters.p_year",
+									"type": "Expression"
+								},
+								"input_path": {
+									"value": "@pipeline().parameters.p_inputPath",
+									"type": "Expression"
+								}
+							}
+						},
+						"linkedServiceName": {
+							"referenceName": "lsadbucwsdemo",
+							"type": "LinkedServiceReference"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"p_env": {
+						"type": "string"
+					},
+					"p_year": {
+						"type": "string"
+					},
+					"p_inputPath": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"lastPublishTime": "2025-11-21T10:35:09Z"
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/lsadbucwsdemo')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/pl_dataflow_conditionalsplit')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "ConditionalSplit",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "Conditional-split",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"Orders": {},
+									"product": {},
+									"HighValueSink": {},
+									"problemsink": {},
+									"normalsink": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2025-10-23T13:13:47Z"
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/dataflows/Conditional-split')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/pl_test_appendvariable')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "AppendFistValue",
+						"type": "AppendVariable",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "MyArray",
+							"value": "TestValue1"
+						}
+					},
+					{
+						"name": "AppendSecondValue",
+						"type": "AppendVariable",
+						"dependsOn": [
+							{
+								"activity": "AppendFistValue",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "MyArray",
+							"value": "TestValue2"
+						}
+					},
+					{
+						"name": "Set variable value",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "AppendSecondValue",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "MySetArray",
+							"value": [
+								"@variables('MyArray')"
+							]
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"variables": {
+					"MyArray": {
+						"type": "Array",
+						"defaultValue": []
+					},
+					"MyAppendArray": {
+						"type": "Array"
+					},
+					"MySecondAppendVariable": {
+						"type": "Array"
+					},
+					"MySetArray": {
+						"type": "Array"
+					}
+				},
+				"annotations": [],
+				"lastPublishTime": "2025-10-20T06:55:30Z"
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/pl_test_execute_pipeline')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "Run_ChildPipeline",
+						"type": "ExecutePipeline",
+						"dependsOn": [],
+						"policy": {
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "PL_Lookup_Demo",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "Set variable1",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "Run_ChildPipeline",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "ReceivedMessage",
+							"value": {
+								"value": "@activity('Run_ChildPipeline').output.pipelineReturnValue.MessageFromChild\n",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"variables": {
+					"ReceivedMessage": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"lastPublishTime": "2025-10-20T12:00:32Z"
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/pipelines/PL_Lookup_Demo')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/pl_test_getmetadata')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "GetFolderDetails",
+						"type": "GetMetadata",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataset": {
+								"referenceName": "Binary_ds",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"fieldList": [
+								"childItems",
+								"lastModified",
+								"itemName"
+							],
+							"storeSettings": {
+								"type": "AzureBlobFSReadSettings",
+								"recursive": true,
+								"enablePartitionDiscovery": false
+							},
+							"formatSettings": {
+								"type": "BinaryReadSettings"
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2025-10-20T06:55:50Z"
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/datasets/Binary_ds')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/pl_tumbling_window_copy')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "Tumbling_Copy",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"wildcardFolderPath": "tumbling-demo/input",
+									"wildcardFileName": {
+										"value": "@concat('events_', formatDateTime(pipeline().parameters.windowStart, 'yyyy-MM-dd_HH'), '.csv')",
+										"type": "Expression"
+									},
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"sink": {
+								"type": "DelimitedTextSink",
+								"storeSettings": {
+									"type": "AzureBlobFSWriteSettings",
+									"copyBehavior": "MergeFiles"
+								},
+								"formatSettings": {
+									"type": "DelimitedTextWriteSettings",
+									"quoteAllText": true,
+									"fileExtension": ".txt"
+								}
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "tumbling_input",
+								"type": "DatasetReference",
+								"parameters": {
+									"p_folderPath": "tumbling-demo/input",
+									"p_fileName": "@concat('events_', formatDateTime(pipeline().parameters.windowStart,'yyyy-MM-dd_HH'), '.csv')"
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "tumpling_processed",
+								"type": "DatasetReference",
+								"parameters": {
+									"p_folderPath": "tumbling-demo/processed",
+									"p_fileName": "@concat('processed_', formatDateTime(pipeline().parameters.windowEnd,'yyyyMMddHHmm'), '.csv')"
+								}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"windowStart": {
+						"type": "string"
+					},
+					"windowEnd": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"lastPublishTime": "2025-11-07T07:40:21Z"
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/datasets/tumbling_input')]",
+				"[concat(variables('workspaceId'), '/datasets/tumpling_processed')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Binary_ds')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_Storage_MyAccount",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "Binary",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "landing",
+						"fileSystem": "my-container"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/LS_Storage_MyAccount')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Config_Json')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_Storage_MyAccount",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "Json",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "Config.json",
+						"folderPath": "config",
+						"fileSystem": "my-container"
+					}
+				},
+				"schema": {
+					"type": "object",
+					"properties": {
+						"FileName": {
+							"type": "string"
+						},
+						"ProcessFlag": {
+							"type": "string"
+						}
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/LS_Storage_MyAccount')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Customer_Orders')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_Storage_MyAccount",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "dataflow/enriched-orders-output",
+						"fileSystem": "my-container"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/LS_Storage_MyAccount')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/DS_ADLS_Sink')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_Storage_MyAccount",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "output",
+						"fileSystem": "my-container"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/LS_Storage_MyAccount')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/DS_ADLS_Source')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_Storage_MyAccount",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "sales_25_10_2025.csv",
+						"folderPath": "input",
+						"fileSystem": "my-container"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "order_id",
+						"type": "String"
+					},
+					{
+						"name": "customer",
+						"type": "String"
+					},
+					{
+						"name": "region",
+						"type": "String"
+					},
+					{
+						"name": "amount",
+						"type": "String"
+					},
+					{
+						"name": "order_date",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/LS_Storage_MyAccount')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/DS_Bronze_Generic')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_Storage_MyAccount",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"folderPath": {
+						"type": "string"
+					},
+					"fileName": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "Binary",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().fileName",
+							"type": "Expression"
+						},
+						"folderPath": {
+							"value": "@dataset().folderPath",
+							"type": "Expression"
+						},
+						"fileSystem": "my-container"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/LS_Storage_MyAccount')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/DS_Cust_Adls')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_Storage_MyAccount",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "onprem-customer",
+						"fileSystem": "my-container"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/LS_Storage_MyAccount')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/DS_Customers_Sink')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_Storage_MyAccount",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "dataflow/output",
+						"fileSystem": "my-container"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/LS_Storage_MyAccount')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/DS_Customers_Source')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_Storage_MyAccount",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "Customer_Sales_2025-10-01.csv",
+						"folderPath": "dataflow/input",
+						"fileSystem": "my-container"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "CustID",
+						"type": "String"
+					},
+					{
+						"name": "Name",
+						"type": "String"
+					},
+					{
+						"name": "Country",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/LS_Storage_MyAccount')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/DS_File_Param')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_Storage_MyAccount",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"folderPath": {
+						"type": "string"
+					},
+					"fileName": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": {
+							"value": "@dataset().folderPath",
+							"type": "Expression"
+						},
+						"fileSystem": "my-container"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "order_id",
+						"type": "String"
+					},
+					{
+						"name": "customer",
+						"type": "String"
+					},
+					{
+						"name": "region",
+						"type": "String"
+					},
+					{
+						"name": "amount",
+						"type": "String"
+					},
+					{
+						"name": "order_date",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/LS_Storage_MyAccount')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/DS_Input_Generic')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_Storage_MyAccount",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"folderPath": {
+						"type": "string"
+					},
+					"fileName": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "Binary",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().fileName",
+							"type": "Expression"
+						},
+						"folderPath": {
+							"value": "@dataset().folderPath",
+							"type": "Expression"
+						},
+						"fileSystem": "my-container"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/LS_Storage_MyAccount')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/DS_OnpremTrainingDB')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "SqlServer_Onprem",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "SqlServerTable",
+				"schema": [
+					{
+						"name": "CustomerId",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "Name",
+						"type": "nvarchar"
+					},
+					{
+						"name": "City",
+						"type": "nvarchar"
+					},
+					{
+						"name": "CreatedDate",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "Customers"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/SqlServer_Onprem')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/DS_Processed_Param')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_Storage_MyAccount",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"folderPath": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": {
+							"value": "@dataset().folderPath",
+							"type": "Expression"
+						},
+						"fileSystem": "my-container"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "order_id",
+						"type": "String"
+					},
+					{
+						"name": "customer",
+						"type": "String"
+					},
+					{
+						"name": "region",
+						"type": "String"
+					},
+					{
+						"name": "amount",
+						"type": "String"
+					},
+					{
+						"name": "order_date",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/LS_Storage_MyAccount')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/DS_SHIR_Parquet_Sink')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_Storage_MyAccount",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "SHIR_Parquet_Output",
+						"fileSystem": "my-container"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/LS_Storage_MyAccount')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/DS_ValidationDemo_File')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_Storage_MyAccount",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "sales_25_10_2025.csv",
+						"folderPath": "validationdemo",
+						"fileSystem": "my-container"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "order_id",
+						"type": "String"
+					},
+					{
+						"name": "customer",
+						"type": "String"
+					},
+					{
+						"name": "region",
+						"type": "String"
+					},
+					{
+						"name": "amount",
+						"type": "String"
+					},
+					{
+						"name": "order_date",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/LS_Storage_MyAccount')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/HighValueOrders')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_Storage_MyAccount",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "dataflow/conditional-split/highvalue",
+						"fileSystem": "my-container"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/LS_Storage_MyAccount')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Problemorder')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_Storage_MyAccount",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "dataflow/conditional-split/problem",
+						"fileSystem": "my-container"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/LS_Storage_MyAccount')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/addresses')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_Storage_MyAccount",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "addresses.csv",
+						"folderPath": "dataflow/join-datasets",
+						"fileSystem": "my-container"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "customer_id",
+						"type": "String"
+					},
+					{
+						"name": "city",
+						"type": "String"
+					},
+					{
+						"name": "state",
+						"type": "String"
+					},
+					{
+						"name": "zip",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/LS_Storage_MyAccount')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/customerloyalty')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_Storage_MyAccount",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "dataflow/customers-loyalty",
+						"fileSystem": "my-container"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/LS_Storage_MyAccount')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/customers')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_Storage_MyAccount",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "customers.csv",
+						"folderPath": "dataflow/join-datasets",
+						"fileSystem": "my-container"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "customer_id",
+						"type": "String"
+					},
+					{
+						"name": "name",
+						"type": "String"
+					},
+					{
+						"name": "email",
+						"type": "String"
+					},
+					{
+						"name": "age",
+						"type": "String"
+					},
+					{
+						"name": "country",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/LS_Storage_MyAccount')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/customers_has_orders')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_Storage_MyAccount",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "dataflow/customers-has-orders",
+						"fileSystem": "my-container"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/LS_Storage_MyAccount')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/ds_input_file_0411')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_Storage_MyAccount",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "Binary",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "batch_event_pipeline/test_ip",
+						"fileSystem": "my-container"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/LS_Storage_MyAccount')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/ds_output_file_0411')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_Storage_MyAccount",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "Binary",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "batch_event_pipeline/test_op",
+						"fileSystem": "my-container"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/LS_Storage_MyAccount')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/loyalty')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_Storage_MyAccount",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "loyalty.csv",
+						"folderPath": "dataflow/join-datasets",
+						"fileSystem": "my-container"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "customer_id",
+						"type": "String"
+					},
+					{
+						"name": "is_loyal",
+						"type": "String"
+					},
+					{
+						"name": "loyalty_points",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/LS_Storage_MyAccount')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/new_customers')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_Storage_MyAccount",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "new_customers.csv",
+						"folderPath": "dataflow/join-datasets",
+						"fileSystem": "my-container"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "customer_id",
+						"type": "String"
+					},
+					{
+						"name": "name",
+						"type": "String"
+					},
+					{
+						"name": "email",
+						"type": "String"
+					},
+					{
+						"name": "age",
+						"type": "String"
+					},
+					{
+						"name": "country",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/LS_Storage_MyAccount')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/normalorder')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_Storage_MyAccount",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"folderPath": "dataflow/conditional-split/normal",
+						"fileSystem": "my-container"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/LS_Storage_MyAccount')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/orders')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_Storage_MyAccount",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "orders.csv",
+						"folderPath": "dataflow/join-datasets",
+						"fileSystem": "my-container"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "order_id",
+						"type": "String"
+					},
+					{
+						"name": "customer_id",
+						"type": "String"
+					},
+					{
+						"name": "product_id",
+						"type": "String"
+					},
+					{
+						"name": "quantity",
+						"type": "String"
+					},
+					{
+						"name": "order_date",
+						"type": "String"
+					},
+					{
+						"name": "status",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/LS_Storage_MyAccount')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/products')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_Storage_MyAccount",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "products.csv",
+						"folderPath": "dataflow/join-datasets",
+						"fileSystem": "my-container"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "product_id",
+						"type": "String"
+					},
+					{
+						"name": "product_name",
+						"type": "String"
+					},
+					{
+						"name": "category",
+						"type": "String"
+					},
+					{
+						"name": "price",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/LS_Storage_MyAccount')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/tumbling_input')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_Storage_MyAccount",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"p_folderPath": {
+						"type": "string"
+					},
+					"p_fileName": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().p_fileName\n",
+							"type": "Expression"
+						},
+						"folderPath": {
+							"value": "@dataset().p_folderPath",
+							"type": "Expression"
+						},
+						"fileSystem": "my-container"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "event_time",
+						"type": "String"
+					},
+					{
+						"name": "event_id",
+						"type": "String"
+					},
+					{
+						"name": "value",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/LS_Storage_MyAccount')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/tumpling_processed')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_Storage_MyAccount",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"p_folderPath": {
+						"type": "string"
+					},
+					"p_fileName": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().p_fileName",
+							"type": "Expression"
+						},
+						"folderPath": {
+							"value": "@dataset().p_folderPath",
+							"type": "Expression"
+						},
+						"fileSystem": "my-container"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/LS_Storage_MyAccount')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/LSRetailSales')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": [],
+				"type": "PowerBIWorkspace",
+				"typeProperties": {
+					"workspaceID": "102e67de-c204-40ae-ad6d-26b6d5e22917",
+					"tenantID": "0e2550ab-88cf-4296-a101-f59b0ce63477"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/LS_Storage_MyAccount')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('LS_Storage_MyAccount_properties_typeProperties_url')]"
+				},
+				"connectVia": {
+					"referenceName": "AutoResolveIntegrationRuntime",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/PowerBIWorkspaceLS_Test')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": [],
+				"type": "PowerBIWorkspace",
+				"typeProperties": {
+					"workspaceID": "102e67de-c204-40ae-ad6d-26b6d5e22917",
+					"tenantID": "0e2550ab-88cf-4296-a101-f59b0ce63477"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/SqlServer_Onprem')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": [],
+				"type": "SqlServer",
+				"typeProperties": {
+					"server": "[parameters('SqlServer_Onprem_properties_typeProperties_server')]",
+					"database": "[parameters('SqlServer_Onprem_properties_typeProperties_database')]",
+					"encrypt": "True",
+					"trustServerCertificate": true,
+					"authenticationType": "SQL",
+					"userName": "[parameters('SqlServer_Onprem_properties_typeProperties_userName')]",
+					"password": {
+						"type": "SecureString",
+						"value": "[parameters('SqlServer_Onprem_password')]"
+					}
+				},
+				"connectVia": {
+					"referenceName": "training-shir",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/training-shir')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/dftest-ws-WorkspaceDefaultSqlServer')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"parameters": {
+					"DBName": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"type": "AzureSqlDW",
+				"typeProperties": {
+					"connectionString": "[parameters('dftest-ws-WorkspaceDefaultSqlServer_connectionString')]"
+				},
+				"connectVia": {
+					"referenceName": "AutoResolveIntegrationRuntime",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/dftest-ws-WorkspaceDefaultStorage')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('dftest-ws-WorkspaceDefaultStorage_properties_typeProperties_url')]"
+				},
+				"connectVia": {
+					"referenceName": "AutoResolveIntegrationRuntime",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/lsadbucwsdemo')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": [],
+				"type": "AzureDatabricks",
+				"typeProperties": {
+					"domain": "https://adb-2176601745337116.16.azuredatabricks.net",
+					"authentication": "MSI",
+					"workspaceResourceId": "/subscriptions/5499f583-85ce-4ef3-acb8-a530627b63a1/resourceGroups/dftest_rg/providers/Microsoft.Databricks/workspaces/ucwsdemo1811",
+					"existingClusterId": "1118-150333-8c872r2z"
+				},
+				"connectVia": {
+					"referenceName": "AutoResolveIntegrationRuntime",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Batch_Event_Trigger_Sales')]",
+			"type": "Microsoft.Synapse/workspaces/triggers",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": [],
+				"runtimeState": "Stopped",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "PL_Event_Ingest_ByCategory",
+							"type": "PipelineReference"
+						},
+						"parameters": {
+							"p_folderPath": "[parameters('Batch_Event_Trigger_Sales_properties_PL_Event_Ingest_ByCategory_parameters_p_folderPath')]",
+							"p_fileName": "[parameters('Batch_Event_Trigger_Sales_properties_PL_Event_Ingest_ByCategory_parameters_p_fileName')]"
+						}
+					}
+				],
+				"type": "BlobEventsTrigger",
+				"typeProperties": {
+					"blobPathBeginsWith": "/my-container/blobs/batch_event_pipeline/input/",
+					"ignoreEmptyBlobs": true,
+					"scope": "[parameters('Batch_Event_Trigger_Sales_properties_typeProperties_scope')]",
+					"events": [
+						"Microsoft.Storage.BlobCreated"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/pipelines/PL_Event_Ingest_ByCategory')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Event_Trigger_Test')]",
+			"type": "Microsoft.Synapse/workspaces/triggers",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": [],
+				"runtimeState": "Stopped",
+				"pipelines": [
+					{
+						"pipelineReference": {
+							"referenceName": "Pl_Event_Test",
+							"type": "PipelineReference"
+						},
+						"parameters": {}
+					}
+				],
+				"type": "BlobEventsTrigger",
+				"typeProperties": {
+					"blobPathBeginsWith": "/my-container/blobs/batch_event_pipeline/test_ip",
+					"ignoreEmptyBlobs": true,
+					"scope": "[parameters('Event_Trigger_Test_properties_typeProperties_scope')]",
+					"events": [
+						"Microsoft.Storage.BlobCreated"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/pipelines/Pl_Event_Test')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Tumbling_Filter_Trigger')]",
+			"type": "Microsoft.Synapse/workspaces/triggers",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": [],
+				"runtimeState": "Stopped",
+				"pipeline": {
+					"pipelineReference": {
+						"referenceName": "P_DataFlow_TumblingFilter",
+						"type": "PipelineReference"
+					},
+					"parameters": {
+						"windowStart": "[parameters('Tumbling_Filter_Trigger_properties_pipeline_parameters_windowStart')]",
+						"windowEnd": "[parameters('Tumbling_Filter_Trigger_properties_pipeline_parameters_windowEnd')]"
+					}
+				},
+				"type": "TumblingWindowTrigger",
+				"typeProperties": {
+					"frequency": "Hour",
+					"interval": 1,
+					"startTime": "2025-11-11T07:00:00Z",
+					"endTime": "2025-11-11T09:00:00Z",
+					"delay": "00:00:00",
+					"maxConcurrency": 1,
+					"retryPolicy": {
+						"intervalInSeconds": 30
+					},
+					"dependsOn": []
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/pipelines/P_DataFlow_TumblingFilter')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Tumbling_Trigger')]",
+			"type": "Microsoft.Synapse/workspaces/triggers",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": [],
+				"runtimeState": "Stopped",
+				"pipeline": {
+					"pipelineReference": {
+						"referenceName": "pl_tumbling_window_copy",
+						"type": "PipelineReference"
+					},
+					"parameters": {
+						"windowStart": "[parameters('Tumbling_Trigger_properties_pipeline_parameters_windowStart')]",
+						"windowEnd": "[parameters('Tumbling_Trigger_properties_pipeline_parameters_windowEnd')]"
+					}
+				},
+				"type": "TumblingWindowTrigger",
+				"typeProperties": {
+					"frequency": "Hour",
+					"interval": 1,
+					"startTime": "2025-11-07T07:42:00Z",
+					"endTime": "2025-11-07T10:42:00Z",
+					"delay": "00:00:00",
+					"maxConcurrency": 50,
+					"retryPolicy": {
+						"intervalInSeconds": 30
+					},
+					"dependsOn": []
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/pipelines/pl_tumbling_window_copy')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/AutoResolveIntegrationRuntime')]",
+			"type": "Microsoft.Synapse/workspaces/integrationRuntimes",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"type": "Managed",
+				"typeProperties": {
+					"computeProperties": {
+						"location": "AutoResolve",
+						"dataFlowProperties": {
+							"computeType": "General",
+							"coreCount": 8,
+							"timeToLive": 0
+						}
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/training-shir')]",
+			"type": "Microsoft.Synapse/workspaces/integrationRuntimes",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"type": "SelfHosted",
+				"typeProperties": {}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Conditional-split')]",
+			"type": "Microsoft.Synapse/workspaces/dataflows",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "orders",
+								"type": "DatasetReference"
+							},
+							"name": "Orders"
+						},
+						{
+							"dataset": {
+								"referenceName": "products",
+								"type": "DatasetReference"
+							},
+							"name": "product"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "HighValueOrders",
+								"type": "DatasetReference"
+							},
+							"name": "HighValueSink"
+						},
+						{
+							"dataset": {
+								"referenceName": "Problemorder",
+								"type": "DatasetReference"
+							},
+							"name": "problemsink"
+						},
+						{
+							"dataset": {
+								"referenceName": "normalorder",
+								"type": "DatasetReference"
+							},
+							"name": "normalsink"
+						}
+					],
+					"transformations": [
+						{
+							"name": "joinproduct"
+						},
+						{
+							"name": "derivedColumnproduct"
+						},
+						{
+							"name": "conditionalsplit"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          order_id as string,",
+						"          customer_id as string,",
+						"          product_id as string,",
+						"          quantity as integer,",
+						"          order_date as string,",
+						"          status as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     limit: 100,",
+						"     ignoreNoFilesFound: false) ~> Orders",
+						"source(output(",
+						"          product_id as string,",
+						"          product_name as string,",
+						"          category as string,",
+						"          price as double",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     limit: 100,",
+						"     ignoreNoFilesFound: false) ~> product",
+						"Orders, product join(Orders@product_id == product@product_id,",
+						"     joinType:'inner',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> joinproduct",
+						"joinproduct derive(order_value = quantity * price) ~> derivedColumnproduct",
+						"derivedColumnproduct split(order_value > 100,",
+						"     status == 'Returned' || status == 'Cancelled',",
+						"     disjoint: false) ~> conditionalsplit@(HighValue, ProblemOrders, NormalOrders)",
+						"conditionalsplit@HighValue sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> HighValueSink",
+						"conditionalsplit@ProblemOrders sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> problemsink",
+						"conditionalsplit@NormalOrders sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> normalsink"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/datasets/orders')]",
+				"[concat(variables('workspaceId'), '/datasets/products')]",
+				"[concat(variables('workspaceId'), '/datasets/HighValueOrders')]",
+				"[concat(variables('workspaceId'), '/datasets/Problemorder')]",
+				"[concat(variables('workspaceId'), '/datasets/normalorder')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/DataFlow-Filter')]",
+			"type": "Microsoft.Synapse/workspaces/dataflows",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_Customers_Source",
+								"type": "DatasetReference"
+							},
+							"name": "customersource"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "DS_Customers_Sink",
+								"type": "DatasetReference"
+							},
+							"name": "customersink"
+						}
+					],
+					"transformations": [
+						{
+							"name": "FilterIndiaCustomers"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          CustID as string,",
+						"          Name as string,",
+						"          Country as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> customersource",
+						"customersource filter(Country == 'India') ~> FilterIndiaCustomers",
+						"FilterIndiaCustomers sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> customersink"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/datasets/DS_Customers_Source')]",
+				"[concat(variables('workspaceId'), '/datasets/DS_Customers_Sink')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Dataflow1')]",
+			"type": "Microsoft.Synapse/workspaces/dataflows",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "customers",
+								"type": "DatasetReference"
+							},
+							"name": "CustomersSrc"
+						},
+						{
+							"dataset": {
+								"referenceName": "orders",
+								"type": "DatasetReference"
+							},
+							"name": "OrdersSrc"
+						},
+						{
+							"dataset": {
+								"referenceName": "products",
+								"type": "DatasetReference"
+							},
+							"name": "ProductsSrc"
+						},
+						{
+							"dataset": {
+								"referenceName": "loyalty",
+								"type": "DatasetReference"
+							},
+							"name": "LoyaltyLookupSrc"
+						},
+						{
+							"dataset": {
+								"referenceName": "new_customers",
+								"type": "DatasetReference"
+							},
+							"name": "NewCustomersSrc"
+						},
+						{
+							"dataset": {
+								"referenceName": "addresses",
+								"type": "DatasetReference"
+							},
+							"name": "AddressesSrc"
+						},
+						{
+							"dataset": {
+								"referenceName": "customers",
+								"type": "DatasetReference"
+							},
+							"name": "CustomerSrc2"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "Customer_Orders",
+								"type": "DatasetReference"
+							},
+							"name": "sink1"
+						},
+						{
+							"dataset": {
+								"referenceName": "customerloyalty",
+								"type": "DatasetReference"
+							},
+							"name": "CustomerWithLoyalty"
+						},
+						{
+							"dataset": {
+								"referenceName": "customers_has_orders",
+								"type": "DatasetReference"
+							},
+							"name": "CustomerHasOrder"
+						}
+					],
+					"transformations": [
+						{
+							"name": "JoinCustomer"
+						},
+						{
+							"name": "JoinProduct"
+						},
+						{
+							"name": "JoinAddress"
+						},
+						{
+							"name": "SelectCustomerProduct"
+						},
+						{
+							"name": "CustomersLookup"
+						},
+						{
+							"name": "exist"
+						},
+						{
+							"name": "derivedColumn1"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          customer_id as string,",
+						"          name as string,",
+						"          email as string,",
+						"          age as string,",
+						"          country as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     limit: 20,",
+						"     ignoreNoFilesFound: false) ~> CustomersSrc",
+						"source(output(",
+						"          order_id as string,",
+						"          customer_id as string,",
+						"          product_id as string,",
+						"          quantity as string,",
+						"          order_date as string,",
+						"          status as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     limit: 20,",
+						"     ignoreNoFilesFound: false) ~> OrdersSrc",
+						"source(output(",
+						"          product_id as string,",
+						"          product_name as string,",
+						"          category as string,",
+						"          price as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     limit: 20,",
+						"     ignoreNoFilesFound: false) ~> ProductsSrc",
+						"source(output(",
+						"          customer_id as string,",
+						"          is_loyal as string,",
+						"          loyalty_points as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     limit: 20,",
+						"     ignoreNoFilesFound: false) ~> LoyaltyLookupSrc",
+						"source(output(",
+						"          customer_id as string,",
+						"          name as string,",
+						"          email as string,",
+						"          age as string,",
+						"          country as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     limit: 20,",
+						"     ignoreNoFilesFound: false) ~> NewCustomersSrc",
+						"source(output(",
+						"          customer_id as string,",
+						"          city as string,",
+						"          state as string,",
+						"          zip as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     limit: 20,",
+						"     ignoreNoFilesFound: false) ~> AddressesSrc",
+						"source(output(",
+						"          customer_id as string,",
+						"          name as string,",
+						"          email as string,",
+						"          age as string,",
+						"          country as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> CustomerSrc2",
+						"OrdersSrc, CustomersSrc join(OrdersSrc@customer_id == CustomersSrc@customer_id,",
+						"     joinType:'inner',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> JoinCustomer",
+						"JoinCustomer, ProductsSrc join(OrdersSrc@product_id == ProductsSrc@product_id,",
+						"     joinType:'left',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> JoinProduct",
+						"JoinProduct, AddressesSrc join(CustomersSrc@customer_id == AddressesSrc@customer_id,",
+						"     joinType:'left',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> JoinAddress",
+						"JoinAddress select(mapColumn(",
+						"          order_id,",
+						"          quantity,",
+						"          customer_id = CustomersSrc@customer_id,",
+						"          name,",
+						"          product_name,",
+						"          price,",
+						"          city",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> SelectCustomerProduct",
+						"CustomersSrc, LoyaltyLookupSrc lookup(CustomersSrc@customer_id == LoyaltyLookupSrc@customer_id,",
+						"     multiple: false,",
+						"     pickup: 'any',",
+						"     broadcast: 'auto')~> CustomersLookup",
+						"CustomerSrc2, OrdersSrc exists(CustomerSrc2@customer_id == OrdersSrc@customer_id,",
+						"     negate:false,",
+						"     broadcast: 'auto')~> exist",
+						"exist derive(has_orders = true()) ~> derivedColumn1",
+						"SelectCustomerProduct sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> sink1",
+						"CustomersLookup sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> CustomerWithLoyalty",
+						"derivedColumn1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> CustomerHasOrder"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/datasets/customers')]",
+				"[concat(variables('workspaceId'), '/datasets/orders')]",
+				"[concat(variables('workspaceId'), '/datasets/products')]",
+				"[concat(variables('workspaceId'), '/datasets/loyalty')]",
+				"[concat(variables('workspaceId'), '/datasets/new_customers')]",
+				"[concat(variables('workspaceId'), '/datasets/addresses')]",
+				"[concat(variables('workspaceId'), '/datasets/Customer_Orders')]",
+				"[concat(variables('workspaceId'), '/datasets/customerloyalty')]",
+				"[concat(variables('workspaceId'), '/datasets/customers_has_orders')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Test_DataFlow')]",
+			"type": "Microsoft.Synapse/workspaces/dataflows",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "tumbling_input",
+								"type": "DatasetReference"
+							},
+							"name": "InputSource"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "tumpling_processed",
+								"type": "DatasetReference"
+							},
+							"name": "Ouputsink"
+						}
+					],
+					"transformations": [
+						{
+							"name": "Timefilter",
+							"description": "event_ts >= toTimestamp('2025-11-06 10:00:00', 'yyyy-MM-dd HH:mm:ss')"
+						},
+						{
+							"name": "derivedColumn1"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          event_time as string,",
+						"          event_id as string,",
+						"          value as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> InputSource",
+						"derivedColumn1 filter(event_ts >= toTimestamp('2025-11-06 10:00:00', 'yyyy-MM-dd HH:mm:ss')) ~> Timefilter",
+						"InputSource derive(event_ts = toTimestamp(event_time, 'yyyy-MM-dd\\'T\\'HH:mm:ss\\'Z\\'')) ~> derivedColumn1",
+						"Timefilter sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> Ouputsink"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/datasets/tumbling_input')]",
+				"[concat(variables('workspaceId'), '/datasets/tumpling_processed')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/TumblingDataFlow')]",
+			"type": "Microsoft.Synapse/workspaces/dataflows",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "tumbling_input",
+								"type": "DatasetReference"
+							},
+							"name": "TumblingSource"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "tumpling_processed",
+								"type": "DatasetReference"
+							},
+							"name": "Tumblingsink"
+						}
+					],
+					"transformations": [
+						{
+							"name": "DerivedEventTime"
+						},
+						{
+							"name": "FilterRows",
+							"description": "&& toTimestamp(event_time, 'yyyy-MM-ddTHH:mm:ssZ') < toTimestamp($df_windowEnd, 'yyyy-MM-ddTHH:mm:ssZ')"
+						}
+					],
+					"scriptLines": [
+						"parameters{",
+						"     df_windowStart as string,",
+						"     df_windowEnd as string",
+						"}",
+						"source(output(",
+						"          event_time as string,",
+						"          event_id as string,",
+						"          value as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     limit: 50,",
+						"     ignoreNoFilesFound: false,",
+						"     wildcardPaths:[(concat('tumbling-demo/input/events_', toString(toTimestamp($df_windowStart, 'yyyy-MM-dd HH:mm:ss'), 'yyyy-MM-dd_HH'), '.csv')\r",
+						")]) ~> TumblingSource",
+						"TumblingSource derive(event_ts = toTimestamp(event_time, 'yyyy-MM-dd\\'T\\'HH:mm:ss\\'Z\\'')) ~> DerivedEventTime",
+						"DerivedEventTime filter(event_ts >= toTimestamp($df_windowStart, 'yyyy-MM-dd HH:mm:ss')",
+						"&& event_ts  < toTimestamp($df_windowEnd, 'yyyy-MM-dd HH:mm:ss')) ~> FilterRows",
+						"FilterRows sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     filePattern:(concat('processed_', toString(toTimestamp($df_windowStart, 'yyyy-MM-dd HH:mm:ss'), 'yyyy-MM-dd_HH'), '.csv')),",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     partitionBy('hash', 1)) ~> Tumblingsink"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/datasets/tumbling_input')]",
+				"[concat(variables('workspaceId'), '/datasets/tumpling_processed')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/WorkspaceSystemIdentity')]",
+			"type": "Microsoft.Synapse/workspaces/credentials",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"type": "ManagedIdentity",
+				"typeProperties": {}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/SQL_RetailDB')]",
+			"type": "Microsoft.Synapse/workspaces/sqlscripts",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"content": {
+					"query": "CREATE DATABASE RetailDB;\nGO\nUSE RetailDB;\nGO\n\nCREATE MASTER KEY ENCRYPTION BY PASSWORD = 'sasSql@25';\nGO\n\nCREATE DATABASE SCOPED CREDENTIAL SynapseMI\nWITH IDENTITY = 'Managed Identity';\nGO\n\nCREATE EXTERNAL DATA SOURCE RetailDataLake\nWITH (\n    LOCATION = 'https://dftestsa1910.dfs.core.windows.net/',\n    CREDENTIAL = SynapseMI);  -- or SAS_Credential);\nGO\n\nCREATE EXTERNAL FILE FORMAT CsvFormat\nWITH (\n    FORMAT_TYPE = DELIMITEDTEXT,\n    FORMAT_OPTIONS (FIELD_TERMINATOR = ',', STRING_DELIMITER = '\"', FIRST_ROW = 2)\n);\nGO\n\nCREATE EXTERNAL TABLE dbo.Retail_Sales_Sample_Data\n(\n    [OrderID] INT,\n    [OrderDate] DATE,                         -- ✅ Changed to DATE\n    [Region] NVARCHAR(50),                    -- ✅ Shortened to 50\n    [Category] NVARCHAR(50),                  -- ✅ Shortened to 50\n    [Product] NVARCHAR(100),                  -- ✅ Slightly larger, product names vary\n    [Quantity] INT,\n    [UnitPrice] INT,\n    [Discount] INT,\n    [SalesAmount] FLOAT,\n    [Profit] FLOAT\n)\nWITH (\n    LOCATION = 'my-container/retail_sample/Retail_Sales_Sample_Data.csv',\n    DATA_SOURCE = RetailDataLake,\n    FILE_FORMAT = CsvFormat\n);\nGO\n\nSELECT TOP 10 * FROM dbo.Retail_Sales_Sample_Data;\ngo\n\n-- List all users in the current database\nSELECT name AS [UserName],\n       type_desc AS [UserType]\nFROM sys.database_principals\nWHERE type IN ('S', 'E', 'X', 'U') \n  AND name NOT LIKE '##%';\n  go\n\n\n  -- List all database roles and their members\nSELECT r.name AS RoleName,\n       m.name AS MemberName\nFROM sys.database_role_members drm\nJOIN sys.database_principals r ON drm.role_principal_id = r.principal_id\nJOIN sys.database_principals m ON drm.member_principal_id = m.principal_id\nORDER BY r.name;\ngo\n\n\n-- Create AAD user for Power BI or your user\nCREATE USER [purviewtester@skiganeshgmail.onmicrosoft.com] FROM EXTERNAL PROVIDER;\nGO\n\n-- Grant read permissions\nALTER ROLE db_datareader ADD MEMBER [purviewtester@skiganeshgmail.onmicrosoft.com];\nGO\n\n-- Grant your user access to use the credential\nGRANT REFERENCES ON DATABASE SCOPED CREDENTIAL::[SynapseMI]\nTO [purviewtester@skiganeshgmail.onmicrosoft.com];\nGO\n\n\nSELECT *\nFROM sys.database_scoped_credentials;\nGO\n\nSELECT *\nFROM sys.external_data_sources;\nGO\n",
+					"metadata": {
+						"language": "sql"
+					},
+					"currentConnection": {
+						"databaseName": "RetailDB",
+						"poolName": "Built-in"
+					},
+					"resultLimit": 5000
+				},
+				"type": "SqlQuery"
+			},
+			"dependsOn": []
+		}
+	]
+}

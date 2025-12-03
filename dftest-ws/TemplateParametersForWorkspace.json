@@ -1,0 +1,54 @@
+{
+	"$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentParameters.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"workspaceName": {
+			"value": "dftest-ws"
+		},
+		"SqlServer_Onprem_password": {
+			"value": ""
+		},
+		"dftest-ws-WorkspaceDefaultSqlServer_connectionString": {
+			"value": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=tcp:dftest-ws.sql.azuresynapse.net,1433;Initial Catalog=@{linkedService().DBName}"
+		},
+		"LS_Storage_MyAccount_properties_typeProperties_url": {
+			"value": "https://dftestsa1910.dfs.core.windows.net/"
+		},
+		"SqlServer_Onprem_properties_typeProperties_server": {
+			"value": "localhost"
+		},
+		"SqlServer_Onprem_properties_typeProperties_database": {
+			"value": "TrainingDB"
+		},
+		"SqlServer_Onprem_properties_typeProperties_userName": {
+			"value": "synapse_user"
+		},
+		"dftest-ws-WorkspaceDefaultStorage_properties_typeProperties_url": {
+			"value": "https://dftestsa1910.dfs.core.windows.net"
+		},
+		"Batch_Event_Trigger_Sales_properties_PL_Event_Ingest_ByCategory_parameters_p_folderPath": {
+			"value": "@triggerBody().folderPath"
+		},
+		"Batch_Event_Trigger_Sales_properties_PL_Event_Ingest_ByCategory_parameters_p_fileName": {
+			"value": "@triggerBody().fileName"
+		},
+		"Batch_Event_Trigger_Sales_properties_typeProperties_scope": {
+			"value": "/subscriptions/5499f583-85ce-4ef3-acb8-a530627b63a1/resourceGroups/dftest_rg/providers/Microsoft.Storage/storageAccounts/dftestsa1910"
+		},
+		"Event_Trigger_Test_properties_typeProperties_scope": {
+			"value": "/subscriptions/5499f583-85ce-4ef3-acb8-a530627b63a1/resourceGroups/dftest_rg/providers/Microsoft.Storage/storageAccounts/dftestsa1910"
+		},
+		"Tumbling_Filter_Trigger_properties_pipeline_parameters_windowStart": {
+			"value": "@trigger().outputs.windowStartTime"
+		},
+		"Tumbling_Filter_Trigger_properties_pipeline_parameters_windowEnd": {
+			"value": "@trigger().outputs.windowEndTime"
+		},
+		"Tumbling_Trigger_properties_pipeline_parameters_windowStart": {
+			"value": "@trigger().outputs.windowStartTime"
+		},
+		"Tumbling_Trigger_properties_pipeline_parameters_windowEnd": {
+			"value": "@trigger().outputs.windowEndTime"
+		}
+	}
+}
