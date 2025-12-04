@@ -1139,103 +1139,6 @@
 			"dependsOn": []
 		},
 		{
-			"name": "[concat(parameters('workspaceName'), '/P_DataFlow_TumblingFilter')]",
-			"type": "Microsoft.Synapse/workspaces/pipelines",
-			"apiVersion": "2019-06-01-preview",
-			"properties": {
-				"activities": [
-					{
-						"name": "TumblingDataFlow",
-						"type": "ExecuteDataFlow",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"dataflow": {
-								"referenceName": "TumblingDataFlow",
-								"type": "DataFlowReference",
-								"parameters": {
-									"df_windowStart": {
-										"value": "'@{pipeline().parameters.windowStart}'",
-										"type": "Expression"
-									},
-									"df_windowEnd": {
-										"value": "'@{pipeline().parameters.windowEnd}'",
-										"type": "Expression"
-									}
-								},
-								"datasetParameters": {
-									"TumblingSource": {
-										"p_folderPath": "tumbling-demo/input",
-										"p_fileName": {
-											"value": "@concat('events_', formatDateTime(pipeline().parameters.windowStart,'yyyy-MM-dd_HH'), '.csv')",
-											"type": "Expression"
-										}
-									},
-									"Tumblingsink": {
-										"p_folderPath": "tumbling-demo/processed",
-										"p_fileName": "@concat('processed_', formatDateTime(pipeline().parameters.windowEnd,'yyyyMMddHHmm'), '.csv')"
-									}
-								}
-							},
-							"staging": {},
-							"compute": {
-								"coreCount": 8,
-								"computeType": "General"
-							},
-							"traceLevel": "Fine"
-						}
-					},
-					{
-						"name": "CheckParameter",
-						"type": "SetVariable",
-						"state": "Inactive",
-						"onInactiveMarkAs": "Succeeded",
-						"dependsOn": [],
-						"policy": {
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"variableName": "StartTime",
-							"value": {
-								"value": "@pipeline().parameters.windowStart",
-								"type": "Expression"
-							}
-						}
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"parameters": {
-					"windowStart": {
-						"type": "string"
-					},
-					"windowEnd": {
-						"type": "string"
-					}
-				},
-				"variables": {
-					"StartTime": {
-						"type": "String"
-					}
-				},
-				"annotations": [],
-				"lastPublishTime": "2025-11-10T17:20:37Z"
-			},
-			"dependsOn": [
-				"[concat(variables('workspaceId'), '/dataflows/TumblingDataFlow')]"
-			]
-		},
-		{
 			"name": "[concat(parameters('workspaceName'), '/Pl_CopyData_Demo')]",
 			"type": "Microsoft.Synapse/workspaces/pipelines",
 			"apiVersion": "2019-06-01-preview",
@@ -1487,6 +1390,103 @@
 			},
 			"dependsOn": [
 				"[concat(variables('workspaceId'), '/dataflows/Dataflow1')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Pl_DataFlow_TumblingFilter')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "TumblingDataFlow",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "TumblingDataFlow",
+								"type": "DataFlowReference",
+								"parameters": {
+									"df_windowStart": {
+										"value": "'@{pipeline().parameters.windowStart}'",
+										"type": "Expression"
+									},
+									"df_windowEnd": {
+										"value": "'@{pipeline().parameters.windowEnd}'",
+										"type": "Expression"
+									}
+								},
+								"datasetParameters": {
+									"TumblingSource": {
+										"p_folderPath": "tumbling-demo/input",
+										"p_fileName": {
+											"value": "@concat('events_', formatDateTime(pipeline().parameters.windowStart,'yyyy-MM-dd_HH'), '.csv')",
+											"type": "Expression"
+										}
+									},
+									"Tumblingsink": {
+										"p_folderPath": "tumbling-demo/processed",
+										"p_fileName": "@concat('processed_', formatDateTime(pipeline().parameters.windowEnd,'yyyyMMddHHmm'), '.csv')"
+									}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					},
+					{
+						"name": "CheckParameter",
+						"type": "SetVariable",
+						"state": "Inactive",
+						"onInactiveMarkAs": "Succeeded",
+						"dependsOn": [],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "StartTime",
+							"value": {
+								"value": "@pipeline().parameters.windowStart",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"windowStart": {
+						"type": "string"
+					},
+					"windowEnd": {
+						"type": "string"
+					}
+				},
+				"variables": {
+					"StartTime": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"lastPublishTime": "2025-11-10T17:20:37Z"
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/dataflows/TumblingDataFlow')]"
 			]
 		},
 		{
@@ -3314,7 +3314,7 @@
 				"runtimeState": "Stopped",
 				"pipeline": {
 					"pipelineReference": {
-						"referenceName": "P_DataFlow_TumblingFilter",
+						"referenceName": "Pl_DataFlow_TumblingFilter",
 						"type": "PipelineReference"
 					},
 					"parameters": {
@@ -3337,7 +3337,7 @@
 				}
 			},
 			"dependsOn": [
-				"[concat(variables('workspaceId'), '/pipelines/P_DataFlow_TumblingFilter')]"
+				"[concat(variables('workspaceId'), '/pipelines/Pl_DataFlow_TumblingFilter')]"
 			]
 		},
 		{
