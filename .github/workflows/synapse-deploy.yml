@@ -24,6 +24,6 @@ jobs:
       with:
         subscriptionId: ${{ secrets.subscriptionId }}
         resourceGroupName: "dftest_rg"
-        template: "dftest-ws/template.json"
-        parameters: "dftest-ws/templateParameters.json"
+        template: "dftest-ws/TemplateForWorkspace.json"
+        parameters: "dftest-ws/TemplateParametersForWorkspace.json"
         deploymentName: "synapseDeployment"
