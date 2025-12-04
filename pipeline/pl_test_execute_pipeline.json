@@ -12,7 +12,7 @@
 				"userProperties": [],
 				"typeProperties": {
 					"pipeline": {
-						"referenceName": "PL_Lookup_Demo",
+						"referenceName": "Pl_Lookup_Demo",
 						"type": "PipelineReference"
 					},
 					"waitOnCompletion": true
