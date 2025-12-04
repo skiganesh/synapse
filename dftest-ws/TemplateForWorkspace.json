@@ -221,153 +221,6 @@
 			]
 		},
 		{
-			"name": "[concat(parameters('workspaceName'), '/PL_Lookup_Demo')]",
-			"type": "Microsoft.Synapse/workspaces/pipelines",
-			"apiVersion": "2019-06-01-preview",
-			"properties": {
-				"activities": [
-					{
-						"name": "ReadConfigFile",
-						"type": "Lookup",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "JsonSource",
-								"storeSettings": {
-									"type": "AzureBlobFSReadSettings",
-									"recursive": true,
-									"enablePartitionDiscovery": false
-								},
-								"formatSettings": {
-									"type": "JsonReadSettings"
-								}
-							},
-							"dataset": {
-								"referenceName": "Config_Json",
-								"type": "DatasetReference",
-								"parameters": {}
-							},
-							"firstRowOnly": false
-						}
-					},
-					{
-						"name": "Filter_ProcessFlagY",
-						"type": "Filter",
-						"dependsOn": [
-							{
-								"activity": "ReadConfigFile",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"userProperties": [],
-						"typeProperties": {
-							"items": {
-								"value": "@activity('ReadConfigFile').output.value",
-								"type": "Expression"
-							},
-							"condition": {
-								"value": "@equals(item().ProcessFlag, 'Y')",
-								"type": "Expression"
-							}
-						}
-					},
-					{
-						"name": "Loop_ProcessedFiles",
-						"type": "ForEach",
-						"dependsOn": [
-							{
-								"activity": "Filter_ProcessFlagY",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"userProperties": [],
-						"typeProperties": {
-							"items": {
-								"value": "@activity('Filter_ProcessFlagY').output.value\n",
-								"type": "Expression"
-							},
-							"activities": [
-								{
-									"name": "AppendFileNames",
-									"type": "AppendVariable",
-									"dependsOn": [],
-									"userProperties": [],
-									"typeProperties": {
-										"variableName": "ProcessedFiles",
-										"value": {
-											"value": "@item().FileName\n",
-											"type": "Expression"
-										}
-									}
-								}
-							]
-						}
-					},
-					{
-						"name": "Set_CurrentFile",
-						"type": "SetVariable",
-						"dependsOn": [
-							{
-								"activity": "Loop_ProcessedFiles",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"variableName": "pipelineReturnValue",
-							"value": [
-								{
-									"key": "MessageFromChild",
-									"value": {
-										"type": "Expression",
-										"content": "@string(variables('ProcessedFiles'))"
-									}
-								}
-							],
-							"setSystemVariable": true
-						}
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"variables": {
-					"CurrentFile": {
-						"type": "Array"
-					},
-					"ProcessedFiles": {
-						"type": "Array"
-					},
-					"ResultMessage": {
-						"type": "String"
-					}
-				},
-				"annotations": [],
-				"lastPublishTime": "2025-10-20T12:53:35Z"
-			},
-			"dependsOn": [
-				"[concat(variables('workspaceId'), '/datasets/Config_Json')]"
-			]
-		},
-		{
 			"name": "[concat(parameters('workspaceName'), '/PL_Mapping_DataFlow_Demo')]",
 			"type": "Microsoft.Synapse/workspaces/pipelines",
 			"apiVersion": "2019-06-01-preview",
@@ -1618,6 +1471,153 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('workspaceName'), '/Pl_Lookup_Demo')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "ReadConfigFile",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "JsonSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "JsonReadSettings"
+								}
+							},
+							"dataset": {
+								"referenceName": "Config_Json",
+								"type": "DatasetReference",
+								"parameters": {}
+							},
+							"firstRowOnly": false
+						}
+					},
+					{
+						"name": "Filter_ProcessFlagY",
+						"type": "Filter",
+						"dependsOn": [
+							{
+								"activity": "ReadConfigFile",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('ReadConfigFile').output.value",
+								"type": "Expression"
+							},
+							"condition": {
+								"value": "@equals(item().ProcessFlag, 'Y')",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Loop_ProcessedFiles",
+						"type": "ForEach",
+						"dependsOn": [
+							{
+								"activity": "Filter_ProcessFlagY",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"items": {
+								"value": "@activity('Filter_ProcessFlagY').output.value\n",
+								"type": "Expression"
+							},
+							"activities": [
+								{
+									"name": "AppendFileNames",
+									"type": "AppendVariable",
+									"dependsOn": [],
+									"userProperties": [],
+									"typeProperties": {
+										"variableName": "ProcessedFiles",
+										"value": {
+											"value": "@item().FileName\n",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "Set_CurrentFile",
+						"type": "SetVariable",
+						"dependsOn": [
+							{
+								"activity": "Loop_ProcessedFiles",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "pipelineReturnValue",
+							"value": [
+								{
+									"key": "MessageFromChild",
+									"value": {
+										"type": "Expression",
+										"content": "@string(variables('ProcessedFiles'))"
+									}
+								}
+							],
+							"setSystemVariable": true
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"variables": {
+					"CurrentFile": {
+						"type": "Array"
+					},
+					"ProcessedFiles": {
+						"type": "Array"
+					},
+					"ResultMessage": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"lastPublishTime": "2025-10-20T12:53:35Z"
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/datasets/Config_Json')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('workspaceName'), '/pl_dataflow_conditionalsplit')]",
 			"type": "Microsoft.Synapse/workspaces/pipelines",
 			"apiVersion": "2019-06-01-preview",
@@ -1763,7 +1763,7 @@
 						"userProperties": [],
 						"typeProperties": {
 							"pipeline": {
-								"referenceName": "PL_Lookup_Demo",
+								"referenceName": "Pl_Lookup_Demo",
 								"type": "PipelineReference"
 							},
 							"waitOnCompletion": true,
@@ -1807,7 +1807,7 @@
 				"lastPublishTime": "2025-10-20T12:00:32Z"
 			},
 			"dependsOn": [
-				"[concat(variables('workspaceId'), '/pipelines/PL_Lookup_Demo')]"
+				"[concat(variables('workspaceId'), '/pipelines/Pl_Lookup_Demo')]"
 			]
 		},
 		{
