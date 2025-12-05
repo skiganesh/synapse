@@ -1,6 +1,7 @@
 name: Deploy Synapse to Prod
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - workspace_publish
