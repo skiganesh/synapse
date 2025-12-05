@@ -3,7 +3,7 @@
 	"contentVersion": "1.0.0.0",
 	"parameters": {
 		"workspaceName": {
-			"value": "dftest-ws"
+			"value": "dfprodws"
 		},
 		"SqlServer_Onprem_password": {
 			"value": ""
