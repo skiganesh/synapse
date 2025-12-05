@@ -36,11 +36,11 @@
 			"type": "string",
 			"defaultValue": "https://dftestsa1910.dfs.core.windows.net"
 		},
-		"Batch_Event_Trigger_Sales_properties_PL_Event_Ingest_ByCategory_parameters_p_folderPath": {
+		"Batch_Event_Trigger_Sales_properties_Pl_Event_Ingest_ByCategory_parameters_p_folderPath": {
 			"type": "string",
 			"defaultValue": "@triggerBody().folderPath"
 		},
-		"Batch_Event_Trigger_Sales_properties_PL_Event_Ingest_ByCategory_parameters_p_fileName": {
+		"Batch_Event_Trigger_Sales_properties_Pl_Event_Ingest_ByCategory_parameters_p_fileName": {
 			"type": "string",
 			"defaultValue": "@triggerBody().fileName"
 		},
@@ -73,153 +73,6 @@
 		"workspaceId": "[concat('Microsoft.Synapse/workspaces/', parameters('workspaceName'))]"
 	},
 	"resources": [
-		{
-			"name": "[concat(parameters('workspaceName'), '/PL_Event_Ingest_ByCategory')]",
-			"type": "Microsoft.Synapse/workspaces/pipelines",
-			"apiVersion": "2019-06-01-preview",
-			"properties": {
-				"activities": [
-					{
-						"name": "Copy_Routed_File",
-						"type": "Copy",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "BinarySource",
-								"storeSettings": {
-									"type": "AzureBlobFSReadSettings",
-									"recursive": true
-								},
-								"formatSettings": {
-									"type": "BinaryReadSettings"
-								}
-							},
-							"sink": {
-								"type": "BinarySink",
-								"storeSettings": {
-									"type": "AzureBlobFSWriteSettings",
-									"copyBehavior": "PreserveHierarchy"
-								}
-							},
-							"enableStaging": false
-						},
-						"inputs": [
-							{
-								"referenceName": "DS_Input_Generic",
-								"type": "DatasetReference",
-								"parameters": {
-									"folderPath": {
-										"value": "@substring(pipeline().parameters.p_folderPath, \n            add(indexOf(pipeline().parameters.p_folderPath, '/'), 1), \n            sub(length(pipeline().parameters.p_folderPath), add(indexOf(pipeline().parameters.p_folderPath, '/'), 1)))\n",
-										"type": "Expression"
-									},
-									"fileName": {
-										"value": "@pipeline().parameters.p_fileName",
-										"type": "Expression"
-									}
-								}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "DS_Bronze_Generic",
-								"type": "DatasetReference",
-								"parameters": {
-									"folderPath": {
-										"value": "@replace(substring(pipeline().parameters.p_folderPath, add(indexOf(pipeline().parameters.p_folderPath, 'batch_event_pipeline/'), 0), sub(length(pipeline().parameters.p_folderPath), indexOf(pipeline().parameters.p_folderPath, 'batch_event_pipeline/'))), 'input/', 'bronze/')",
-										"type": "Expression"
-									},
-									"fileName": {
-										"value": "@pipeline().parameters.p_fileName",
-										"type": "Expression"
-									}
-								}
-							}
-						]
-					},
-					{
-						"name": "Validate_PipelineVariable_folderPath",
-						"type": "SetVariable",
-						"state": "Inactive",
-						"onInactiveMarkAs": "Succeeded",
-						"dependsOn": [],
-						"policy": {
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"variableName": "folderPath",
-							"value": {
-								"value": "@replace(substring(pipeline().parameters.p_folderPath, add(indexOf(pipeline().parameters.p_folderPath, 'batch_event_pipeline/'), 0), sub(length(pipeline().parameters.p_folderPath), indexOf(pipeline().parameters.p_folderPath, 'batch_event_pipeline/'))), 'input/', 'bronze/')",
-								"type": "Expression"
-							}
-						}
-					},
-					{
-						"name": "Validate_PipelineVariable_fileName",
-						"type": "SetVariable",
-						"state": "Inactive",
-						"onInactiveMarkAs": "Succeeded",
-						"dependsOn": [
-							{
-								"activity": "Validate_PipelineVariable_folderPath",
-								"dependencyConditions": [
-									"Succeeded"
-								]
-							}
-						],
-						"policy": {
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"variableName": "filename",
-							"value": {
-								"value": "@pipeline().parameters.p_fileName",
-								"type": "Expression"
-							}
-						}
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"parameters": {
-					"p_folderPath": {
-						"type": "string"
-					},
-					"p_fileName": {
-						"type": "string"
-					}
-				},
-				"variables": {
-					"filename": {
-						"type": "String"
-					},
-					"filePath": {
-						"type": "String"
-					},
-					"folderPath": {
-						"type": "String"
-					}
-				},
-				"annotations": [],
-				"lastPublishTime": "2025-11-05T16:54:57Z"
-			},
-			"dependsOn": [
-				"[concat(variables('workspaceId'), '/datasets/DS_Input_Generic')]",
-				"[concat(variables('workspaceId'), '/datasets/DS_Bronze_Generic')]"
-			]
-		},
 		{
 			"name": "[concat(parameters('workspaceName'), '/PL_Mapping_DataFlow_Demo')]",
 			"type": "Microsoft.Synapse/workspaces/pipelines",
@@ -1340,6 +1193,153 @@
 			},
 			"dependsOn": [
 				"[concat(variables('workspaceId'), '/dataflows/TumblingDataFlow')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/Pl_Event_Ingest_ByCategory')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "Copy_Routed_File",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "BinarySource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true
+								},
+								"formatSettings": {
+									"type": "BinaryReadSettings"
+								}
+							},
+							"sink": {
+								"type": "BinarySink",
+								"storeSettings": {
+									"type": "AzureBlobFSWriteSettings",
+									"copyBehavior": "PreserveHierarchy"
+								}
+							},
+							"enableStaging": false
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_Input_Generic",
+								"type": "DatasetReference",
+								"parameters": {
+									"folderPath": {
+										"value": "@substring(pipeline().parameters.p_folderPath, \n            add(indexOf(pipeline().parameters.p_folderPath, '/'), 1), \n            sub(length(pipeline().parameters.p_folderPath), add(indexOf(pipeline().parameters.p_folderPath, '/'), 1)))\n",
+										"type": "Expression"
+									},
+									"fileName": {
+										"value": "@pipeline().parameters.p_fileName",
+										"type": "Expression"
+									}
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_Bronze_Generic",
+								"type": "DatasetReference",
+								"parameters": {
+									"folderPath": {
+										"value": "@replace(substring(pipeline().parameters.p_folderPath, add(indexOf(pipeline().parameters.p_folderPath, 'batch_event_pipeline/'), 0), sub(length(pipeline().parameters.p_folderPath), indexOf(pipeline().parameters.p_folderPath, 'batch_event_pipeline/'))), 'input/', 'bronze/')",
+										"type": "Expression"
+									},
+									"fileName": {
+										"value": "@pipeline().parameters.p_fileName",
+										"type": "Expression"
+									}
+								}
+							}
+						]
+					},
+					{
+						"name": "Validate_PipelineVariable_folderPath",
+						"type": "SetVariable",
+						"state": "Inactive",
+						"onInactiveMarkAs": "Succeeded",
+						"dependsOn": [],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "folderPath",
+							"value": {
+								"value": "@replace(substring(pipeline().parameters.p_folderPath, add(indexOf(pipeline().parameters.p_folderPath, 'batch_event_pipeline/'), 0), sub(length(pipeline().parameters.p_folderPath), indexOf(pipeline().parameters.p_folderPath, 'batch_event_pipeline/'))), 'input/', 'bronze/')",
+								"type": "Expression"
+							}
+						}
+					},
+					{
+						"name": "Validate_PipelineVariable_fileName",
+						"type": "SetVariable",
+						"state": "Inactive",
+						"onInactiveMarkAs": "Succeeded",
+						"dependsOn": [
+							{
+								"activity": "Validate_PipelineVariable_folderPath",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"variableName": "filename",
+							"value": {
+								"value": "@pipeline().parameters.p_fileName",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"parameters": {
+					"p_folderPath": {
+						"type": "string"
+					},
+					"p_fileName": {
+						"type": "string"
+					}
+				},
+				"variables": {
+					"filename": {
+						"type": "String"
+					},
+					"filePath": {
+						"type": "String"
+					},
+					"folderPath": {
+						"type": "String"
+					}
+				},
+				"annotations": [],
+				"lastPublishTime": "2025-11-05T16:54:57Z"
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/datasets/DS_Input_Generic')]",
+				"[concat(variables('workspaceId'), '/datasets/DS_Bronze_Generic')]"
 			]
 		},
 		{
@@ -3252,12 +3252,12 @@
 				"pipelines": [
 					{
 						"pipelineReference": {
-							"referenceName": "PL_Event_Ingest_ByCategory",
+							"referenceName": "Pl_Event_Ingest_ByCategory",
 							"type": "PipelineReference"
 						},
 						"parameters": {
-							"p_folderPath": "[parameters('Batch_Event_Trigger_Sales_properties_PL_Event_Ingest_ByCategory_parameters_p_folderPath')]",
-							"p_fileName": "[parameters('Batch_Event_Trigger_Sales_properties_PL_Event_Ingest_ByCategory_parameters_p_fileName')]"
+							"p_folderPath": "[parameters('Batch_Event_Trigger_Sales_properties_Pl_Event_Ingest_ByCategory_parameters_p_folderPath')]",
+							"p_fileName": "[parameters('Batch_Event_Trigger_Sales_properties_Pl_Event_Ingest_ByCategory_parameters_p_fileName')]"
 						}
 					}
 				],
@@ -3272,7 +3272,7 @@
 				}
 			},
 			"dependsOn": [
-				"[concat(variables('workspaceId'), '/pipelines/PL_Event_Ingest_ByCategory')]"
+				"[concat(variables('workspaceId'), '/pipelines/Pl_Event_Ingest_ByCategory')]"
 			]
 		},
 		{

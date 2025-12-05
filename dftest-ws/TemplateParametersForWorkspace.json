@@ -26,10 +26,10 @@
 		"dftest-ws-WorkspaceDefaultStorage_properties_typeProperties_url": {
 			"value": "https://dftestsa1910.dfs.core.windows.net"
 		},
-		"Batch_Event_Trigger_Sales_properties_PL_Event_Ingest_ByCategory_parameters_p_folderPath": {
+		"Batch_Event_Trigger_Sales_properties_Pl_Event_Ingest_ByCategory_parameters_p_folderPath": {
 			"value": "@triggerBody().folderPath"
 		},
-		"Batch_Event_Trigger_Sales_properties_PL_Event_Ingest_ByCategory_parameters_p_fileName": {
+		"Batch_Event_Trigger_Sales_properties_Pl_Event_Ingest_ByCategory_parameters_p_fileName": {
 			"value": "@triggerBody().fileName"
 		},
 		"Batch_Event_Trigger_Sales_properties_typeProperties_scope": {
