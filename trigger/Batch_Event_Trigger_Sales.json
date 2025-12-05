@@ -6,7 +6,7 @@
 		"pipelines": [
 			{
 				"pipelineReference": {
-					"referenceName": "PL_Event_Ingest_ByCategory",
+					"referenceName": "Pl_Event_Ingest_ByCategory",
 					"type": "PipelineReference"
 				},
 				"parameters": {
