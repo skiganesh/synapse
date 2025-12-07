@@ -37,9 +37,9 @@ jobs:
         with:
           subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           resourceGroupName: ${{ env.RESOURCE_GROUP_NAME }}
-          template: "workspace/TemplateForWorkspace.json"
+          template: "dftest-ws/TemplateForWorkspace.json"
           parameters: >
-            workspace/TemplateParametersForWorkspace.json
+            dftest-ws/TemplateParametersForWorkspace.json
             workspaceName=${{ github.event.inputs.environment == 'prod' && env.PROD_WORKSPACE_NAME || env.UAT_WORKSPACE_NAME }}
             SqlServer_Onprem_password=${{ secrets.SQL_SERVER_PASSWORD }}
           deploymentName: synapseDeployment-${{ github.event.inputs.environment }}
