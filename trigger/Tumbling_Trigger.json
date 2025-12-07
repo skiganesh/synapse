@@ -5,7 +5,7 @@
 		"runtimeState": "Stopped",
 		"pipeline": {
 			"pipelineReference": {
-				"referenceName": "pl_tumbling_window_copy",
+				"referenceName": "pl_Tumbling_Window_Copy",
 				"type": "PipelineReference"
 			},
 			"parameters": {
