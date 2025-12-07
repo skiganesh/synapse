@@ -1,0 +1,45 @@
+name: Deploy Synapse workspace
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        type: choice
+        required: true
+        options:
+          - uat
+          - prod
+
+jobs:
+  deploy:
+    name: Deploy Synapse ARM templates
+    runs-on: ubuntu-latest
+
+    env:
+      UAT_WORKSPACE_NAME: dfuatws          # change to your UAT workspace name
+      PROD_WORKSPACE_NAME: dfprodws        # change to your PROD workspace name
+      RESOURCE_GROUP_NAME: dftest_rg       # change if UAT/PROD use different RG
+
+    steps:
+      - name: Checkout workspace_publish branch
+        uses: actions/checkout@v4
+        with:
+          ref: workspace_publish
+
+      - name: Azure login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy Synapse ARM Template
+        uses: azure/arm-deploy@v1
+        with:
+          subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          resourceGroupName: ${{ env.RESOURCE_GROUP_NAME }}
+          template: "workspace/TemplateForWorkspace.json"
+          parameters: >
+            workspace/TemplateParametersForWorkspace.json
+            workspaceName=${{ github.event.inputs.environment == 'prod' && env.PROD_WORKSPACE_NAME || env.UAT_WORKSPACE_NAME }}
+            SqlServer_Onprem_password=${{ secrets.SQL_SERVER_PASSWORD }}
+          deploymentName: synapseDeployment-${{ github.event.inputs.environment }}
