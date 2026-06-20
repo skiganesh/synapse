@@ -1,0 +1,34 @@
+{
+	"name": "AzureSqlTable_Bt_Customer",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "LS_AzureSQL_bt_lab3",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "Cust_ID",
+				"type": "int",
+				"precision": 10
+			},
+			{
+				"name": "Customer_Name",
+				"type": "varchar"
+			},
+			{
+				"name": "Email",
+				"type": "varchar"
+			},
+			{
+				"name": "Customer_City",
+				"type": "varchar"
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "Customers"
+		}
+	}
+}
