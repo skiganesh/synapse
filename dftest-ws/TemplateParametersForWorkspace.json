@@ -5,11 +5,26 @@
 		"workspaceName": {
 			"value": "dftest-ws"
 		},
+		"LS_AzureSQL_bt_lab3_password": {
+			"value": ""
+		},
 		"SqlServer_Onprem_password": {
 			"value": ""
 		},
 		"dftest-ws-WorkspaceDefaultSqlServer_connectionString": {
 			"value": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=tcp:dftest-ws.sql.azuresynapse.net,1433;Initial Catalog=@{linkedService().DBName}"
+		},
+		"LS_ADLS_bt_lab3_properties_typeProperties_url": {
+			"value": "https://dftestsa1910.dfs.core.windows.net/"
+		},
+		"LS_AzureSQL_bt_lab3_properties_typeProperties_server": {
+			"value": "sql-training-demo.database.windows.net"
+		},
+		"LS_AzureSQL_bt_lab3_properties_typeProperties_database": {
+			"value": "sql_demo_db"
+		},
+		"LS_AzureSQL_bt_lab3_properties_typeProperties_userName": {
+			"value": "admin_pdy"
 		},
 		"LS_Storage_MyAccount_properties_typeProperties_url": {
 			"value": "https://dftestsa1910.dfs.core.windows.net/"

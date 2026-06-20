@@ -7,6 +7,10 @@
 			"metadata": "Workspace name",
 			"defaultValue": "dftest-ws"
 		},
+		"LS_AzureSQL_bt_lab3_password": {
+			"type": "secureString",
+			"metadata": "Secure string for 'password' of 'LS_AzureSQL_bt_lab3'"
+		},
 		"SqlServer_Onprem_password": {
 			"type": "secureString",
 			"metadata": "Secure string for 'password' of 'SqlServer_Onprem'"
@@ -15,6 +19,22 @@
 			"type": "secureString",
 			"metadata": "Secure string for 'connectionString' of 'dftest-ws-WorkspaceDefaultSqlServer'",
 			"defaultValue": "Integrated Security=False;Encrypt=True;Connection Timeout=30;Data Source=tcp:dftest-ws.sql.azuresynapse.net,1433;Initial Catalog=@{linkedService().DBName}"
+		},
+		"LS_ADLS_bt_lab3_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://dftestsa1910.dfs.core.windows.net/"
+		},
+		"LS_AzureSQL_bt_lab3_properties_typeProperties_server": {
+			"type": "string",
+			"defaultValue": "sql-training-demo.database.windows.net"
+		},
+		"LS_AzureSQL_bt_lab3_properties_typeProperties_database": {
+			"type": "string",
+			"defaultValue": "sql_demo_db"
+		},
+		"LS_AzureSQL_bt_lab3_properties_typeProperties_userName": {
+			"type": "string",
+			"defaultValue": "admin_pdy"
 		},
 		"LS_Storage_MyAccount_properties_typeProperties_url": {
 			"type": "string",
@@ -1959,6 +1979,45 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('workspaceName'), '/AzureSqlTable_Bt_Customer')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_AzureSQL_bt_lab3",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "Cust_ID",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "Customer_Name",
+						"type": "varchar"
+					},
+					{
+						"name": "Email",
+						"type": "varchar"
+					},
+					{
+						"name": "Customer_City",
+						"type": "varchar"
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "Customers"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/LS_AzureSQL_bt_lab3')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('workspaceName'), '/Binary_ds')]",
 			"type": "Microsoft.Synapse/workspaces/datasets",
 			"apiVersion": "2019-06-01-preview",
@@ -2738,6 +2797,52 @@
 			]
 		},
 		{
+			"name": "[concat(parameters('workspaceName'), '/ds_bt_customer')]",
+			"type": "Microsoft.Synapse/workspaces/datasets",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_ADLS_bt_lab3",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": "customer.csv",
+						"folderPath": "btree_azure/bt_lab3/source_data",
+						"fileSystem": "my-container"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "CustomerID",
+						"type": "String"
+					},
+					{
+						"name": "FullName",
+						"type": "String"
+					},
+					{
+						"name": "EmailAddress",
+						"type": "String"
+					},
+					{
+						"name": "City",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/linkedServices/LS_ADLS_bt_lab3')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('workspaceName'), '/ds_input_file_0411')]",
 			"type": "Microsoft.Synapse/workspaces/datasets",
 			"apiVersion": "2019-06-01-preview",
@@ -3115,6 +3220,53 @@
 				}
 			},
 			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/LS_ADLS_bt_lab3')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('LS_ADLS_bt_lab3_properties_typeProperties_url')]"
+				},
+				"connectVia": {
+					"referenceName": "AutoResolveIntegrationRuntime",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('workspaceName'), '/LS_AzureSQL_bt_lab3')]",
+			"type": "Microsoft.Synapse/workspaces/linkedServices",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"annotations": [],
+				"type": "AzureSqlDatabase",
+				"typeProperties": {
+					"server": "[parameters('LS_AzureSQL_bt_lab3_properties_typeProperties_server')]",
+					"database": "[parameters('LS_AzureSQL_bt_lab3_properties_typeProperties_database')]",
+					"encrypt": "mandatory",
+					"trustServerCertificate": false,
+					"authenticationType": "SQL",
+					"userName": "[parameters('LS_AzureSQL_bt_lab3_properties_typeProperties_userName')]",
+					"password": {
+						"type": "SecureString",
+						"value": "[parameters('LS_AzureSQL_bt_lab3_password')]"
+					}
+				},
+				"connectVia": {
+					"referenceName": "AutoResolveIntegrationRuntime",
+					"type": "IntegrationRuntimeReference"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/integrationRuntimes/AutoResolveIntegrationRuntime')]"
+			]
 		},
 		{
 			"name": "[concat(parameters('workspaceName'), '/LS_Storage_MyAccount')]",
