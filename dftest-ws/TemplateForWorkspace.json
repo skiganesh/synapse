@@ -865,6 +865,124 @@
 			"dependsOn": []
 		},
 		{
+			"name": "[concat(parameters('workspaceName'), '/Pl_Bt_CopyCSVToSQL')]",
+			"type": "Microsoft.Synapse/workspaces/pipelines",
+			"apiVersion": "2019-06-01-preview",
+			"properties": {
+				"activities": [
+					{
+						"name": "Copydata_CSVtoSQL",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"sink": {
+								"type": "AzureSqlSink",
+								"writeBehavior": "insert",
+								"sqlWriterUseTableLock": false
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "CustomerID",
+											"type": "String"
+										},
+										"sink": {
+											"name": "Cust_ID",
+											"type": "int",
+											"physicalType": "int",
+											"precision": 10
+										}
+									},
+									{
+										"source": {
+											"name": "FullName",
+											"type": "String"
+										},
+										"sink": {
+											"name": "Customer_Name",
+											"type": "varchar",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "EmailAddress",
+											"type": "String"
+										},
+										"sink": {
+											"name": "Email",
+											"type": "varchar",
+											"physicalType": "varchar"
+										}
+									},
+									{
+										"source": {
+											"name": "City",
+											"type": "String"
+										},
+										"sink": {
+											"name": "Customer_City",
+											"type": "varchar",
+											"physicalType": "varchar"
+										}
+									}
+								],
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "ds_bt_customer",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "AzureSqlTable_Bt_Customer",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('workspaceId'), '/datasets/ds_bt_customer')]",
+				"[concat(variables('workspaceId'), '/datasets/AzureSqlTable_Bt_Customer')]"
+			]
+		},
+		{
 			"name": "[concat(parameters('workspaceName'), '/Pl_CopyData_Demo')]",
 			"type": "Microsoft.Synapse/workspaces/pipelines",
 			"apiVersion": "2019-06-01-preview",
@@ -4139,124 +4257,6 @@
 				"type": "SqlQuery"
 			},
 			"dependsOn": []
-		},
-		{
-			"name": "[concat(parameters('workspaceName'), '/Pl_Bt_CopyCSVToSQL')]",
-			"type": "Microsoft.Synapse/workspaces/pipelines",
-			"apiVersion": "2019-06-01-preview",
-			"properties": {
-				"activities": [
-					{
-						"name": "Copydata_CSVtoSQL",
-						"type": "Copy",
-						"dependsOn": [],
-						"policy": {
-							"timeout": "0.12:00:00",
-							"retry": 0,
-							"retryIntervalInSeconds": 30,
-							"secureOutput": false,
-							"secureInput": false
-						},
-						"userProperties": [],
-						"typeProperties": {
-							"source": {
-								"type": "DelimitedTextSource",
-								"storeSettings": {
-									"type": "AzureBlobFSReadSettings",
-									"recursive": true,
-									"enablePartitionDiscovery": false
-								},
-								"formatSettings": {
-									"type": "DelimitedTextReadSettings"
-								}
-							},
-							"sink": {
-								"type": "AzureSqlSink",
-								"writeBehavior": "insert",
-								"sqlWriterUseTableLock": false
-							},
-							"enableStaging": false,
-							"translator": {
-								"type": "TabularTranslator",
-								"mappings": [
-									{
-										"source": {
-											"name": "CustomerID",
-											"type": "String"
-										},
-										"sink": {
-											"name": "Cust_ID",
-											"type": "int",
-											"physicalType": "int",
-											"precision": 10
-										}
-									},
-									{
-										"source": {
-											"name": "FullName",
-											"type": "String"
-										},
-										"sink": {
-											"name": "Customer_Name",
-											"type": "varchar",
-											"physicalType": "varchar"
-										}
-									},
-									{
-										"source": {
-											"name": "EmailAddress",
-											"type": "String"
-										},
-										"sink": {
-											"name": "Email",
-											"type": "varchar",
-											"physicalType": "varchar"
-										}
-									},
-									{
-										"source": {
-											"name": "City",
-											"type": "String"
-										},
-										"sink": {
-											"name": "Customer_City",
-											"type": "varchar",
-											"physicalType": "varchar"
-										}
-									}
-								],
-								"typeConversion": true,
-								"typeConversionSettings": {
-									"allowDataTruncation": true,
-									"treatBooleanAsNumber": false
-								}
-							}
-						},
-						"inputs": [
-							{
-								"referenceName": "ds_bt_customer",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						],
-						"outputs": [
-							{
-								"referenceName": "AzureSqlTable_Bt_Customer",
-								"type": "DatasetReference",
-								"parameters": {}
-							}
-						]
-					}
-				],
-				"policy": {
-					"elapsedTimeMetric": {}
-				},
-				"annotations": []
-			},
-			"dependsOn": [
-				"[concat(variables('workspaceId'), '/datasets/ds_bt_customer')]",
-				"[concat(variables('workspaceId'), '/datasets/AzureSqlTable_Bt_Customer')]"
-			]
 		}
 	]
 }
