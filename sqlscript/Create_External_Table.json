@@ -1,0 +1,20 @@
+{
+	"name": "Create_External_Table",
+	"properties": {
+		"folder": {
+			"name": "Fabric_Training"
+		},
+		"content": {
+			"query": "CREATE DATABASE Sales\n   COLLATE Latin1_General_100_BIN2_UTF8;\n GO;\n\n Use Sales;\n GO;\n\n CREATE EXTERNAL DATA SOURCE sales_data WITH (\n     LOCATION = 'abfss://my-container@dftestsa1910.dfs.core.windows.net/fabric/ex_table/'\n );\n GO;",
+			"metadata": {
+				"language": "sql"
+			},
+			"currentConnection": {
+				"databaseName": "Sales",
+				"poolName": "Built-in"
+			},
+			"resultLimit": 5000
+		},
+		"type": "SqlQuery"
+	}
+}
