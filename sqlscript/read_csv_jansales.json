@@ -5,7 +5,7 @@
 			"name": "Fabric_Training"
 		},
 		"content": {
-			"query": "-- This is auto-generated code\nSELECT\n    TOP 100 *\nFROM\n    OPENROWSET(\n        BULK 'https://dftestsa1910.dfs.core.windows.net/my-container/fabric/csv_sales/sales_jan2024.csv',\n        FORMAT = 'CSV',\n        PARSER_VERSION = '2.0'\n    ) AS [result]\n\n\nSELECT\n    TOP 100 *\nFROM\n    OPENROWSET(\n        BULK 'abfss://my-container@dftestsa1910.dfs.core.windows.net/fabric/csv_sales/sales_jan2024.csv',\n        FORMAT = 'CSV',\n        PARSER_VERSION = '2.0',\n        HEADER_ROW = TRUE,\n        ROWTERMINATOR = '\\n',\n        FIELDTERMINATOR = ','\n       \n    ) AS [result]\n",
+			"query": "-- This is auto-generated code\nSELECT\n    TOP 100 *\nFROM\n    OPENROWSET(\n        BULK 'https://dftestsa1910.dfs.core.windows.net/my-container/fabric/csv_sales/*.csv',\n        FORMAT = 'CSV',\n        PARSER_VERSION = '2.0'\n    ) AS [result]\n\n\nSELECT\n    TOP 100 *\nFROM\n    OPENROWSET(\n        BULK 'abfss://my-container@dftestsa1910.dfs.core.windows.net/fabric/csv_sales/sales_jan2024.csv',\n        FORMAT = 'CSV',\n        PARSER_VERSION = '2.0',\n        HEADER_ROW = TRUE,\n        ROWTERMINATOR = '\\n',\n        FIELDTERMINATOR = ','\n       \n    ) AS [result]\n",
 			"metadata": {
 				"language": "sql"
 			},
